@@ -59,11 +59,11 @@ button, input, select, textarea { font: inherit; }
   margin-bottom: 24px;
 }
 .brand-logo {
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
   display: block;
-  object-fit: contain;
-  flex: 0 0 46px;
+  flex: 0 0 48px;
+  filter: drop-shadow(0 8px 14px rgba(23, 55, 180, .28));
 }
 
 .brand-mark {
