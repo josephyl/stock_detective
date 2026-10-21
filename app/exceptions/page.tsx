@@ -16,17 +16,29 @@ export default async function ExceptionsPage() {
 
   if (error) throw error;
 
+  const rows = data ?? [];
+  const open = rows.filter((row: any) => row.status === "open").length;
+  const high = rows.filter((row: any) => row.status === "open" && row.severity === "high").length;
+
   return (
     <div className="stack">
-      <div>
-        <div className="kicker">Human attention queue</div>
-        <h1>Inventory exceptions</h1>
-        <div className="subtitle">
-          These are records where the current evidence deserves review.
+      <section className="page-hero">
+        <div className="header-row">
+          <div>
+            <div className="kicker">Human attention queue</div>
+            <h1>Exceptions</h1>
+            <div className="subtitle">
+              Review only the records where current evidence is inconsistent, stale or incomplete.
+            </div>
+          </div>
+          <div className="header-actions">
+            <span className="status-chip">{open} open</span>
+            <span className={"status-chip " + (high ? "" : "online")}>{high} high risk</span>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <section className="card">
+      <section className="card elevated">
         <div className="table-wrap">
           <table>
             <thead>
@@ -41,37 +53,42 @@ export default async function ExceptionsPage() {
               </tr>
             </thead>
             <tbody>
-              {(data ?? []).map((row: any) => (
-                <tr key={row.id}>
-                  <td>
-                    <Link href={`/exceptions/${row.id}`}>
-                      <strong>{row.canonical_products?.name}</strong>
-                      <div className="subtitle">{row.canonical_products?.sku}</div>
-                    </Link>
-                  </td>
-                  <td>{row.discrepancy_type.replaceAll("_", " ")}</td>
-                  <td>{row.location}</td>
-                  <td>
-                    <span className={`badge ${row.severity}`}>
-                      {row.severity}
-                    </span>
-                  </td>
-                  <td><span className={`trust-pill ${trustBand(row.confidence_score).className}`}>{trustBand(row.confidence_score).label} · {row.confidence_score}%</span></td>
-                  <td>
-                    {row.value_at_risk == null
-                      ? "—"
-                      : `A$${Number(row.value_at_risk).toFixed(2)}`}
-                  </td>
-                  <td>
-                    <span className={`badge ${row.status === "resolved" ? "resolved" : "low"}`}>
-                      {row.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {!(data ?? []).length && (
+              {rows.map((row: any) => {
+                const trust = trustBand(row.confidence_score);
+                return (
+                  <tr key={row.id}>
+                    <td>
+                      <Link href={"/exceptions/" + row.id}>
+                        <strong>{row.canonical_products?.name}</strong>
+                        <div className="subtitle">{row.canonical_products?.sku}</div>
+                      </Link>
+                    </td>
+                    <td>{row.discrepancy_type.replaceAll("_", " ")}</td>
+                    <td>{row.location}</td>
+                    <td><span className={"badge " + row.severity}>{row.severity}</span></td>
+                    <td>
+                      <span className={"trust-pill " + trust.className}>
+                        {trust.label} · {row.confidence_score}%
+                      </span>
+                    </td>
+                    <td>{row.value_at_risk == null ? "—" : "A$" + Number(row.value_at_risk).toFixed(2)}</td>
+                    <td>
+                      <span className={"badge " + (row.status === "resolved" ? "resolved" : "low")}>
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {!rows.length && (
                 <tr>
-                  <td colSpan={7}>No exceptions yet.</td>
+                  <td colSpan={7}>
+                    <div className="empty-state">
+                      <div className="empty-icon">✓</div>
+                      <h2>No exceptions</h2>
+                      <p>Import source data to create a realistic Week 7 demo.</p>
+                    </div>
+                  </td>
                 </tr>
               )}
             </tbody>
