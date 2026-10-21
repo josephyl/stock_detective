@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { trustBand } from "@/lib/trust";
 
 export default async function ExceptionsPage() {
   const supabase = createAdminClient();
@@ -34,7 +35,7 @@ export default async function ExceptionsPage() {
                 <th>Issue</th>
                 <th>Location</th>
                 <th>Severity</th>
-                <th>Confidence</th>
+                <th>Trust</th>
                 <th>Value at risk</th>
                 <th>Status</th>
               </tr>
@@ -55,7 +56,7 @@ export default async function ExceptionsPage() {
                       {row.severity}
                     </span>
                   </td>
-                  <td>{row.confidence_score}%</td>
+                  <td><span className={`trust-pill ${trustBand(row.confidence_score).className}`}>{trustBand(row.confidence_score).label} · {row.confidence_score}%</span></td>
                   <td>
                     {row.value_at_risk == null
                       ? "—"

@@ -22,6 +22,7 @@ export default function RootLayout({
               <Link href="/">Dashboard</Link>
               <Link href="/upload">Upload sources</Link>
               <Link href="/exceptions">Exceptions</Link>
+              <Link href="/brief">Brief</Link>
             </nav>
           </aside>
           <main className="main">{children}</main>

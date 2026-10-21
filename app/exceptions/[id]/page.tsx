@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import ExceptionActions from "./actions";
+import { trustBand, trustReason } from "@/lib/trust";
+import { buildReconciliationProposal } from "@/lib/proposal";
 
 function confidenceClass(score: number) {
   if (score >= 85) return "good";
@@ -34,6 +36,9 @@ export default async function ExceptionDetailPage({
 
   const details = (data.details ?? {}) as any;
   const sources = details.sources ?? [];
+  const trust = trustBand(data.confidence_score);
+  const trustWhy = trustReason(details);
+  const proposal = buildReconciliationProposal(details);
 
   return (
     <div className="stack">
@@ -51,6 +56,8 @@ export default async function ExceptionDetailPage({
           <div className={`hero-score ${confidenceClass(data.confidence_score)}`}>
             {data.confidence_score}%
           </div>
+          <div className={`trust-pill ${trust.className}`}>{trust.label} trust</div>
+          <p><strong>Why:</strong> {trustWhy}.</p>
           <p>{data.summary}</p>
           <div>
             <span className={`badge ${data.severity}`}>{data.severity} severity</span>
@@ -85,6 +92,7 @@ export default async function ExceptionDetailPage({
         status={data.status}
         productName={(data.canonical_products as any)?.name ?? "Product"}
         sku={(data.canonical_products as any)?.sku ?? ""}
+        proposal={proposal}
       />
 
       {!!resolutions?.length && (

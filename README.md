@@ -114,3 +114,11 @@ HH-MGO550-500,Haddrell's Manuka Honey MGO 550+ 500g,42,Main Warehouse,2026-10-14
 Those are deliberate scope decisions, not omissions.
 
 See `SPEC.md` and `docs/SDD.md`.
+
+## Yellow-feature upgrade
+This version adds the three selected differentiators:
+1. Trust-scored stock (High / Medium / Low plus a plain-English reason).
+2. Reconciliation agent (safe majority-based proposal where evidence supports it; human confirmation required).
+3. Customised views and morning-brief presets.
+
+After replacing the code, run the added `saved_views` SQL block in `supabase/schema.sql` in Supabase SQL Editor.
