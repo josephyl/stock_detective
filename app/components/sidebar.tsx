@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -44,14 +43,13 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand-row">
-        <Image
-          src="/stockdetective-icon.png"
-          alt="StockDetective logo"
-          width={34}
-          height={34}
-          className="brand-logo"
-          priority
-        />
+        <div className="brand-icon-shell">
+          <img
+            src="/stockdetective-icon.png"
+            alt="StockDetective logo"
+            className="brand-logo"
+          />
+        </div>
         <div className="brand">
           StockDetective
           <small>Inventory intelligence</small>
