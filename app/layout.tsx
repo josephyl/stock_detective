@@ -20,8 +20,10 @@ export default function RootLayout({
             </div>
             <nav className="nav">
               <Link href="/">Dashboard</Link>
-              <Link href="/upload">Upload sources</Link>
+              <Link href="/upload">Upload inventory</Link>
+              <Link href="/fulfilment">Upload fulfilment</Link>
               <Link href="/exceptions">Exceptions</Link>
+              <Link href="/agent">Stock Brain</Link>
               <Link href="/brief">Brief</Link>
             </nav>
           </aside>
