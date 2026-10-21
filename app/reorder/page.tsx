@@ -22,7 +22,7 @@ export default function ReorderSafetyPage() {
         <div className="kicker">Replenishment guardrail</div>
         <h1>Reorder Safety Check</h1>
         <div className="subtitle">
-          Before someone relies on an inventory number, Stock Brain checks whether unresolved mismatches, stale data or fulfilment issues make that decision unsafe.
+          Before someone relies on an inventory number, Detective Agent checks whether unresolved mismatches, stale data or fulfilment issues make that decision unsafe.
         </div>
       </section>
 

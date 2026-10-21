@@ -11,7 +11,7 @@ export default async function BriefPage({ searchParams }: { searchParams: Promis
 
   let query = supabase
     .from("discrepancies")
-    .select("id,severity,confidence_score,value_at_risk,summary,location,canonical_products(name,sku)")
+    .select("id,severity,confidence_score,value_at_risk,summary,discrepancy_type,location,canonical_products(name,sku)")
     .eq("status", "open")
     .order("value_at_risk", { ascending: false });
 
@@ -64,7 +64,7 @@ export default async function BriefPage({ searchParams }: { searchParams: Promis
         <h2>Priority list</h2>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Product</th><th>Trust</th><th>Severity</th><th>Value at risk</th><th>Next step</th></tr></thead>
+            <thead><tr><th>Product</th><th>Issue</th><th>Trust</th><th>Severity</th><th>Value at risk</th><th>Next step</th></tr></thead>
             <tbody>
               {rows.map((row: any) => {
                 const trust = trustBand(row.confidence_score);
@@ -78,7 +78,7 @@ export default async function BriefPage({ searchParams }: { searchParams: Promis
                   </tr>
                 );
               })}
-              {!rows.length && <tr><td colSpan={5}>No exceptions match this brief.</td></tr>}
+              {!rows.length && <tr><td colSpan={6}>No exceptions match this brief.</td></tr>}
             </tbody>
           </table>
         </div>

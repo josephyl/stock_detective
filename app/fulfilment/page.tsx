@@ -27,7 +27,7 @@ export default function FulfilmentPage() {
     setBusy(false);
     setStatus(
       response.ok
-        ? "Imported " + body.imported + " fulfilment rows. " + body.findings + " new mismatch(es) detected. Stock Brain assessed the result automatically."
+        ? "Imported " + body.imported + " fulfilment rows. " + body.findings + " new mismatch(es) detected. Detective Agent assessed the result automatically."
         : body.error ?? "Import failed."
     );
   }
@@ -60,7 +60,7 @@ export default function FulfilmentPage() {
               />
             </label>
             <button className="button" disabled={!file || busy}>
-              {busy ? "Reconciling fulfilment..." : "Import + run Stock Brain"}
+              {busy ? "Reconciling fulfilment..." : "Import + run Detective Agent"}
             </button>
             {status && <div className="notice success">{status}</div>}
           </form>
@@ -80,7 +80,7 @@ export default function FulfilmentPage() {
             </div>
             <div className="step-item">
               <div className="step-number">3</div>
-              <p>Stock Brain should create a high-priority case for <strong>ORD-4821</strong>.</p>
+              <p>Detective Agent should create a high-priority case for <strong>ORD-4821</strong>.</p>
             </div>
             <div className="step-item">
               <div className="step-number">4</div>
