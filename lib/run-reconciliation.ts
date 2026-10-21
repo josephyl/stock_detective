@@ -16,8 +16,6 @@ export async function runReconciliation() {
   if (error) throw error;
 
   const records = (data ?? []) as Array<LatestInventoryRecord & { imported_at: string }>;
-
-  // Keep only the latest imported row for each product + location + source.
   const latest = new Map<string, LatestInventoryRecord>();
 
   for (const record of records) {
@@ -26,24 +24,25 @@ export async function runReconciliation() {
       record.location,
       record.source_system,
     ].join("::");
-
-    if (!latest.has(key)) {
-      latest.set(key, record);
-    }
+    if (!latest.has(key)) latest.set(key, record);
   }
 
   const groups = new Map<string, LatestInventoryRecord[]>();
-
   for (const record of latest.values()) {
     const key = [record.canonical_product_id, record.location].join("::");
     groups.set(key, [...(groups.get(key) ?? []), record]);
   }
 
-  // Recompute open findings. Resolved history remains in resolutions.
+  // Recompute only inventory findings; preserve fulfilment exceptions.
   const { error: deleteError } = await supabase
     .from("discrepancies")
     .delete()
-    .eq("status", "open");
+    .eq("status", "open")
+    .in("discrepancy_type", [
+      "quantity_mismatch",
+      "stale_record",
+      "insufficient_sources",
+    ]);
 
   if (deleteError) throw deleteError;
 
@@ -62,7 +61,6 @@ export async function runReconciliation() {
         details: finding.details,
       }))
     );
-
     if (insertError) throw insertError;
   }
 

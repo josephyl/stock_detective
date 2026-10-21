@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Papa from "papaparse";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { runStockBrainAgent } from "@/lib/agent-orchestrator";
 
 type RawRow = Record<string, string>;
 
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
       if (!row.order_id || !row.sku || !row.status) continue;
       const quantity = Number(row.quantity || 1);
       const sku = row.sku.trim().toUpperCase();
+
       const { data: product, error: productError } = await supabase
         .from("canonical_products")
         .upsert({ sku, name: row.name || sku }, { onConflict: "sku" })
@@ -88,7 +90,9 @@ export async function POST(request: Request) {
     for (const records of groups.values()) {
       const hasShipped = records.some((r) => shipped(r.fulfilment_status));
       const hasUnshipped = records.some((r) => unshipped(r.fulfilment_status));
-      const noDeduction = records.some((r) => shipped(r.fulfilment_status) && r.inventory_deducted === false);
+      const noDeduction = records.some(
+        (r) => shipped(r.fulfilment_status) && r.inventory_deducted === false
+      );
       if (!((hasShipped && hasUnshipped) || noDeduction)) continue;
 
       const orderId = records[0].order_id;
@@ -128,7 +132,8 @@ export async function POST(request: Request) {
       findings++;
     }
 
-    return NextResponse.json({ ok: true, imported, findings });
+    const agent = await runStockBrainAgent();
+    return NextResponse.json({ ok: true, imported, findings, agent });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Fulfilment import failed." },

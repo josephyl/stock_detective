@@ -3,13 +3,11 @@
 ## Scenario
 Persona: inventory/operations employee at a small multi-channel retailer.
 
-## 0:00–0:40 — Trigger
-Open Stock Brain. Explain that the employee does not manually check every system; an inventory or fulfilment event creates exceptions and triggers the agent.
+## 0:00–0:35 — Agent is triggered
+Import the second inventory source or the second fulfilment source. Explain that Stock Brain runs automatically after the event. The manual Run Stock Brain button is retained only as a safe retry for the live demo.
 
-## 0:40–1:45 — Inventory mismatch
-Use the existing inventory demo data.
-Run Stock Brain.
-Open the Manuka Honey case.
+## 0:35–1:35 — Inventory mismatch
+Open Stock Brain.
 Show:
 - deterministic trust evidence
 - agent finding
@@ -18,28 +16,30 @@ Show:
 - recommended action
 - human approval boundary
 
-Approve the majority-supported quantity.
+Approve a majority-supported quantity.
 
-## 1:45–2:45 — Fulfilment mismatch
-Upload warehouse_fulfilment.csv as Warehouse.
-Upload shopify_fulfilment.csv as Shopify.
-Run Stock Brain.
+## 1:35–2:35 — Fulfilment mismatch
+Upload warehouse_fulfilment.csv as Warehouse, then shopify_fulfilment.csv as Shopify.
 
 Show ORD-4821:
 - warehouse says shipped
 - Shopify says unshipped
-- inventory deduction not recorded
-- agent recommends holding the reorder and verifying the sync
+- inventory deduction was not recorded
+- Stock Brain automatically creates a high-priority case
+- the agent recommends holding the reorder and verifying the sync
 
 Choose Investigate further.
 
-## 2:45–3:30 — Agent refuses to guess
-Open a case with no majority or insufficient sources.
-Point out the message:
-"Insufficient evidence — manual verification required."
+## 2:35–3:10 — Reorder Safety Check
+Open Reorder safety and check HH-MGO550-500.
+Show "Reorder decision at risk" while unresolved discrepancies exist.
 
-## 3:30–4:00 — Teams + audit trail
+## 3:10–3:35 — Agent refuses to guess
+Open an ambiguous/insufficient-source case.
+Point out: "Insufficient evidence — manual verification required."
+
+## 3:35–4:00 — Teams + conversational follow-up
 Click Send to Teams.
-If TEAMS_WEBHOOK_URL is configured, the alert is sent.
-Otherwise the PoC renders the exact alert preview.
-Finish on the event log to show what the agent did and where the human took control.
+If TEAMS_WEBHOOK_URL is configured, the alert is delivered. Otherwise show the Teams-ready preview.
+Ask Stock Brain: "What inventory needs attention today?"
+Finish on the audit trail to show what the agent did and where the human took control.

@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AgentCaseActions, RunAgentButton } from "./controls";
+import StockBrainChat from "./chat";
 
 export default async function AgentPage() {
   const supabase = createAdminClient();
@@ -16,11 +17,13 @@ export default async function AgentPage() {
           <div className="kicker">Agentic workflow</div>
           <h1>Stock Brain</h1>
           <div className="subtitle">
-            The agent investigates exceptions, prepares a recommendation and hands consequential decisions to a person.
+            Stock Brain monitors exceptions, investigates evidence, prepares a recommendation and hands consequential decisions to a person.
           </div>
         </div>
         <RunAgentButton />
       </div>
+
+      <StockBrainChat />
 
       {(cases ?? []).map((item: any) => {
         const d = item.discrepancies;
@@ -29,7 +32,7 @@ export default async function AgentPage() {
           (a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
         return (
-          <section className="card" key={item.id}>
+          <section className="card" id={`case-${item.id}`} key={item.id}>
             <div className="kicker">{String(d?.discrepancy_type ?? "").replaceAll("_", " ")}</div>
             <h2 style={{ marginBottom: 4 }}>{product?.name ?? "Product"}</h2>
             <div className="subtitle">{product?.sku} · {d?.severity} severity</div>
@@ -46,9 +49,14 @@ export default async function AgentPage() {
                 <p><strong>{item.recommended_action}</strong></p>
                 <p>Agent confidence: <strong>{item.agent_confidence}%</strong></p>
                 {item.proposed_quantity == null && (
-                  <div className="notice">Insufficient evidence for an autonomous quantity change. Human verification remains required.</div>
+                  <div className="notice">
+                    Insufficient evidence for an autonomous quantity change. Human verification remains required.
+                  </div>
                 )}
-                <AgentCaseActions caseId={item.id} canApprove={item.proposed_quantity != null && item.status === "awaiting_review"} />
+                <AgentCaseActions
+                  caseId={item.id}
+                  canApprove={item.proposed_quantity != null && item.status === "awaiting_review"}
+                />
               </div>
 
               <div>
@@ -63,7 +71,9 @@ export default async function AgentPage() {
                   {!events.length && <div className="subtitle">No activity recorded yet.</div>}
                 </div>
                 <div style={{ marginTop: 14 }}>
-                  <span className={`badge ${item.status === "resolved" ? "resolved" : "low"}`}>{item.status.replaceAll("_", " ")}</span>
+                  <span className={`badge ${item.status === "resolved" ? "resolved" : "low"}`}>
+                    {item.status.replaceAll("_", " ")}
+                  </span>
                 </div>
               </div>
             </div>
@@ -74,7 +84,10 @@ export default async function AgentPage() {
       {!(cases ?? []).length && (
         <section className="card">
           <h2>No agent cases yet</h2>
-          <p>Import inventory or fulfilment demo data, then click <strong>Run Stock Brain</strong>.</p>
+          <p>
+            Import inventory or fulfilment demo data. Stock Brain now runs automatically after imports;
+            the manual button remains as a demo-safe retry.
+          </p>
         </section>
       )}
     </div>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { parseInventoryCsv } from "@/lib/csv";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runReconciliation } from "@/lib/run-reconciliation";
+import { runStockBrainAgent } from "@/lib/agent-orchestrator";
 
 export async function POST(request: Request) {
   try {
@@ -64,11 +65,13 @@ export async function POST(request: Request) {
     }
 
     const reconciliation = await runReconciliation();
+    const agent = await runStockBrainAgent();
 
     return NextResponse.json({
       ok: true,
       rows: rows.length,
       reconciliation,
+      agent,
     });
   } catch (error) {
     console.error(error);

@@ -24,6 +24,7 @@ export default function RootLayout({
               <Link href="/fulfilment">Upload fulfilment</Link>
               <Link href="/exceptions">Exceptions</Link>
               <Link href="/agent">Stock Brain</Link>
+              <Link href="/reorder">Reorder safety</Link>
               <Link href="/brief">Brief</Link>
             </nav>
           </aside>
