@@ -1,5 +1,7 @@
+
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ArrowIcon, BotIcon, CheckIcon, SearchIcon } from "./components/icons";
 
 function scoreClass(score: number) {
   if (score >= 85) return "good";
@@ -12,9 +14,7 @@ export default async function DashboardPage() {
 
   const [{ count: productCount }, { data: open }, { data: imports }] =
     await Promise.all([
-      supabase
-        .from("canonical_products")
-        .select("*", { count: "exact", head: true }),
+      supabase.from("canonical_products").select("*", { count: "exact", head: true }),
       supabase
         .from("discrepancies")
         .select(
@@ -26,7 +26,7 @@ export default async function DashboardPage() {
         .from("source_imports")
         .select("source_system,imported_at,row_count")
         .order("imported_at", { ascending: false })
-        .limit(6),
+        .limit(12),
     ]);
 
   const findings = open ?? [];
@@ -35,6 +35,15 @@ export default async function DashboardPage() {
     (sum, x) => sum + Number(x.value_at_risk ?? 0),
     0
   );
+  const reorderRisk = new Set(
+    findings
+      .filter(
+        (x) =>
+          ["high", "medium"].includes(x.severity) ||
+          ["stale_record", "fulfilment_mismatch"].includes(x.discrepancy_type)
+      )
+      .map((x) => x.canonical_product_id)
+  ).size;
 
   const averageConfidence = findings.length
     ? Math.round(
@@ -43,65 +52,79 @@ export default async function DashboardPage() {
       )
     : 100;
 
+  const uniqueImports = Array.from(
+    new Map((imports ?? []).map((x: any) => [x.source_system, x])).values()
+  ).slice(0, 4) as any[];
+
   const aiEnabled = Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL);
 
   return (
     <div className="stack">
-      <section className="page-hero">
-        <div className="header-row">
-          <div>
-            <div className="kicker">Inventory operations workspace</div>
-            <h1>Know what stock you can trust.</h1>
-            <div className="subtitle">
-              StockTrust monitors inventory evidence across systems and sends uncertain decisions to Stock Brain for investigation.
-            </div>
-            <div className="header-actions" style={{ marginTop: 16 }}>
-              <span className="status-chip online">● Monitoring active</span>
-              <span className={"status-chip " + (aiEnabled ? "ai" : "")}>
-                {aiEnabled ? "AI reasoning connected" : "Deterministic mode"}
-              </span>
-            </div>
-          </div>
-          <div className="header-actions">
-            <Link href="/agent" className="button">Open Stock Brain</Link>
-            <Link href="/upload" className="button secondary">Import data</Link>
+      <div className="page-header">
+        <div>
+          <div className="page-eyebrow">Inventory operations</div>
+          <h1>Inventory overview</h1>
+          <div className="subtitle">
+            See what can be trusted, what needs attention, and where Stock Brain is already investigating.
           </div>
         </div>
-      </section>
+
+        <div className="header-actions">
+          <span className="status-chip online">● Stock Brain active</span>
+          <span className={aiEnabled ? "status-chip ai" : "status-chip"}>
+            {aiEnabled ? "AI reasoning connected" : "Deterministic mode"}
+          </span>
+          <Link href="/agent" className="button">
+            <BotIcon />
+            Open Stock Brain
+          </Link>
+        </div>
+      </div>
 
       <div className="grid grid-4">
         <div className="card metric-card">
-          <div className="metric-label">Inventory confidence</div>
+          <div className="metric-label">Inventory trust</div>
           <div className={"metric " + scoreClass(averageConfidence)}>
             {averageConfidence}%
           </div>
-          <div className="metric-note">Across current open evidence</div>
+          <div className="metric-note">Across current evidence</div>
         </div>
+
         <div className="card metric-card">
-          <div className="metric-label">Products monitored</div>
-          <div className="metric">{productCount ?? 0}</div>
-          <div className="metric-note">Canonical SKUs in StockTrust</div>
-        </div>
-        <div className="card metric-card">
-          <div className="metric-label">Open exceptions</div>
+          <div className="metric-label">Active exceptions</div>
           <div className="metric">{findings.length}</div>
-          <div className="metric-note">Require investigation or review</div>
+          <div className="metric-note">Only items needing attention</div>
         </div>
+
         <div className="card metric-card">
-          <div className="metric-label">High-risk exceptions</div>
-          <div className={"metric " + (high ? "bad" : "good")}>{high}</div>
-          <div className="metric-note">Approx. {"A$" + totalRisk.toFixed(0)} inventory exposure</div>
+          <div className="metric-label">High priority</div>
+          <div className={"metric " + (high > 0 ? "bad" : "good")}>{high}</div>
+          <div className="metric-note">Immediate review required</div>
+        </div>
+
+        <div className="card metric-card">
+          <div className="metric-label">Reorders at risk</div>
+          <div className={"metric " + (reorderRisk > 0 ? "warn" : "good")}>
+            {reorderRisk}
+          </div>
+          <div className="metric-note">
+            {totalRisk > 0 ? "Approx. A$" + totalRisk.toFixed(0) + " exposure" : "No blocked reorder evidence"}
+          </div>
         </div>
       </div>
 
       <div className="grid grid-2">
         <section className="card elevated">
-          <div className="header-row" style={{ alignItems: "center", marginBottom: 12 }}>
+          <div className="page-header" style={{ alignItems: "center", marginBottom: 14 }}>
             <div>
               <div className="kicker">Human attention queue</div>
               <h2>Priority exceptions</h2>
+              <div className="subtitle">Stock Brain has already prioritised the cases that deserve review.</div>
             </div>
-            <Link href="/exceptions" className="status-chip">View all →</Link>
+            <Link href="/exceptions" className="button secondary">
+              View all
+              <ArrowIcon />
+            </Link>
           </div>
 
           <div className="table-wrap">
@@ -110,7 +133,7 @@ export default async function DashboardPage() {
                 <tr>
                   <th>Product</th>
                   <th>Issue</th>
-                  <th>Severity</th>
+                  <th>Risk</th>
                   <th>Trust</th>
                 </tr>
               </thead>
@@ -127,15 +150,20 @@ export default async function DashboardPage() {
                     <td>
                       <span className={"badge " + row.severity}>{row.severity}</span>
                     </td>
-                    <td><strong>{row.confidence_score}%</strong></td>
+                    <td>
+                      <strong className={scoreClass(row.confidence_score)}>
+                        {row.confidence_score}%
+                      </strong>
+                    </td>
                   </tr>
                 ))}
                 {!findings.length && (
                   <tr>
                     <td colSpan={4}>
                       <div className="empty-state">
-                        <div className="empty-icon">✓</div>
-                        No open exceptions. Import sample data to begin.
+                        <div className="empty-icon"><CheckIcon /></div>
+                        <h2>No open exceptions</h2>
+                        <p>Import sample data to begin the Week 7 workflow.</p>
                       </div>
                     </td>
                   </tr>
@@ -145,26 +173,57 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <section className="card">
-          <div className="kicker">Data freshness</div>
-          <h2>Recent source imports</h2>
-          <div className="source-list" style={{ marginTop: 14 }}>
-            {(imports ?? []).map((x: any, i: number) => (
-              <div className="source-row" key={x.source_system + "-" + i}>
-                <strong>{x.source_system}</strong>
-                <span>{x.row_count} rows</span>
-                <span>{new Date(x.imported_at).toLocaleString()}</span>
-                <span className="badge resolved">Imported</span>
+        <div className="stack">
+          <section className="card">
+            <div className="kicker">Data freshness</div>
+            <h2>Source health</h2>
+            <div className="source-list" style={{ marginTop: 14 }}>
+              {uniqueImports.map((x: any) => (
+                <div className="source-row compact" key={x.source_system}>
+                  <div>
+                    <strong>{x.source_system}</strong>
+                    <div className="subtitle">
+                      {x.row_count} rows · {new Date(x.imported_at).toLocaleString()}
+                    </div>
+                  </div>
+                  <span className="status-chip online">● Synced</span>
+                </div>
+              ))}
+              {!uniqueImports.length && (
+                <div className="empty-state">No source imports yet.</div>
+              )}
+            </div>
+          </section>
+
+          <section className="card">
+            <div className="kicker">Automation</div>
+            <h2>Stock Brain activity</h2>
+            <div className="source-list" style={{ marginTop: 14 }}>
+              <div className="source-row compact">
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <SearchIcon style={{ color: "var(--primary)" }} />
+                  <div>
+                    <strong>Investigating exceptions</strong>
+                    <div className="subtitle">{findings.length} current cases in scope</div>
+                  </div>
+                </div>
+                <span className="status-chip ai">Active</span>
               </div>
-            ))}
-            {!(imports ?? []).length && (
-              <div className="empty-state">
-                <div className="empty-icon">↑</div>
-                No inventory imports yet.
+              <div className="source-row compact">
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <CheckIcon style={{ color: "var(--green)" }} />
+                  <div>
+                    <strong>Healthy products left alone</strong>
+                    <div className="subtitle">
+                      {Math.max((productCount ?? 0) - new Set(findings.map((x) => x.canonical_product_id)).size, 0)} SKUs need no attention
+                    </div>
+                  </div>
+                </div>
+                <span className="status-chip online">Healthy</span>
               </div>
-            )}
-          </div>
-        </section>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );

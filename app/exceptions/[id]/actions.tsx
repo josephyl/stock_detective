@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ReconciliationProposal } from "@/lib/proposal";
+import { CheckIcon, SearchIcon } from "@/app/components/icons";
 
 export default function ExceptionActions({
   id,
@@ -20,8 +21,12 @@ export default function ExceptionActions({
   const router = useRouter();
   const [explanation, setExplanation] = useState("");
   const [busy, setBusy] = useState(false);
-  const [verifiedQuantity, setVerifiedQuantity] = useState("");
-  const [method, setMethod] = useState("Physical count");
+  const [verifiedQuantity, setVerifiedQuantity] = useState(
+    proposal.quantity == null ? "" : String(proposal.quantity)
+  );
+  const [method, setMethod] = useState(
+    proposal.quantity == null ? "Physical count" : proposal.method
+  );
   const [notes, setNotes] = useState("");
   const [resolvedBy, setResolvedBy] = useState("");
 
@@ -52,6 +57,7 @@ export default function ExceptionActions({
       setBusy(false);
       return;
     }
+
     setBusy(false);
     router.refresh();
   }
@@ -70,79 +76,112 @@ export default function ExceptionActions({
     await submitResolution(
       proposal.quantity,
       proposal.method,
-      `Confirmed StockTrust proposal. ${proposal.reason}`
+      `Human approved StockTrust proposal. ${proposal.reason}`
+    );
+  }
+
+  if (status === "resolved") {
+    return (
+      <div className="decision-stack">
+        <span className="status-chip online">Resolved</span>
+        <div className="notice success">
+          This exception has already been resolved. The resolution remains in the audit history.
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="grid grid-2">
-      <section className="card">
-        <h2>Reconciliation agent</h2>
-        <p className="subtitle">
-          The agent interprets the evidence, proposes a next step and keeps the final decision with a person.
-        </p>
+    <div className="decision-stack">
+      <span className="status-chip">
+        {proposal.quantity != null ? "Approval required" : "Manual verification required"}
+      </span>
 
-        <div className={`proposal-card ${proposal.confidence}`}>
-          <div className="kicker">Agent proposal</div>
-          <h3>{proposal.title}</h3>
-          <p>{proposal.reason}</p>
-          {status !== "resolved" && proposal.quantity != null && (
-            <button className="button" onClick={confirmProposal} disabled={busy}>
-              {busy ? "Working..." : `Confirm ${proposal.quantity} units`}
-            </button>
-          )}
+      <div className="fact-block">
+        <div className="fact-label">
+          {proposal.quantity != null ? "Proposed quantity" : "Agent boundary"}
         </div>
-
-        <button className="button secondary" onClick={explain} disabled={busy} style={{ marginTop: 12 }}>
-          {busy ? "Working..." : "Explain the evidence"}
-        </button>
-        {explanation && <div className="notice" style={{ marginTop: 14 }}>{explanation}</div>}
-      </section>
-
-      <section className="card">
-        <h2>Human resolution</h2>
-        {status === "resolved" ? (
-          <div className="notice">
-            This exception is already resolved. Re-import source data to create new current findings.
-          </div>
+        {proposal.quantity != null ? (
+          <>
+            <div className="hero-score" style={{ fontSize: 30 }}>
+              {proposal.quantity} units
+            </div>
+            <p>{proposal.reason}</p>
+          </>
         ) : (
-          <div className="form-grid">
-            <label>
-              Verified quantity
-              <input
-                inputMode="numeric"
-                value={verifiedQuantity}
-                onChange={(e) => setVerifiedQuantity(e.target.value)}
-                placeholder="e.g. 39"
-              />
-            </label>
-            <label>
-              Verification method
-              <select value={method} onChange={(e) => setMethod(e.target.value)}>
-                <option>Physical count</option>
-                <option>Transaction history</option>
-                <option>Confirmed source sync</option>
-                <option>Cross-source agreement</option>
-                <option>Manager verification</option>
-                <option>Other</option>
-              </select>
-            </label>
-            <label>
-              Resolved by
-              <input value={resolvedBy} onChange={(e) => setResolvedBy(e.target.value)} placeholder="Optional name" />
-            </label>
-            <label>
-              Notes
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder={`What did you verify for ${productName} (${sku})?`}
-              />
-            </label>
-            <button className="button" onClick={resolve} disabled={busy}>Resolve exception</button>
-          </div>
+          <p>{proposal.reason}</p>
         )}
-      </section>
+      </div>
+
+      {proposal.quantity != null && (
+        <button className="button" onClick={confirmProposal} disabled={busy}>
+          <CheckIcon />
+          {busy ? "Saving..." : `Approve ${proposal.quantity} units`}
+        </button>
+      )}
+
+      <button className="button secondary" onClick={explain} disabled={busy}>
+        <SearchIcon />
+        {busy ? "Checking..." : "Explain the evidence"}
+      </button>
+
+      {explanation && (
+        <div className="notice ai-answer">
+          <strong>Evidence explanation</strong>
+          {explanation.replace(/\*\*/g, "")}
+        </div>
+      )}
+
+      <div className="guardrail">
+        <strong>Manual override</strong>
+        <span>
+          Use this only after a physical count or another authoritative verification step.
+        </span>
+      </div>
+
+      <label>
+        Verified quantity
+        <input
+          inputMode="numeric"
+          value={verifiedQuantity}
+          onChange={(e) => setVerifiedQuantity(e.target.value)}
+          placeholder="e.g. 34"
+        />
+      </label>
+
+      <label>
+        Verification method
+        <select value={method} onChange={(e) => setMethod(e.target.value)}>
+          <option>Physical count</option>
+          <option>Transaction history</option>
+          <option>Confirmed source sync</option>
+          <option>Cross-source agreement</option>
+          <option>Manager verification</option>
+          <option>Other</option>
+        </select>
+      </label>
+
+      <label>
+        Resolved by
+        <input
+          value={resolvedBy}
+          onChange={(e) => setResolvedBy(e.target.value)}
+          placeholder="Optional name"
+        />
+      </label>
+
+      <label>
+        Notes
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder={`What did you verify for ${productName} (${sku})?`}
+        />
+      </label>
+
+      <button className="button secondary" onClick={resolve} disabled={busy}>
+        Resolve with verified quantity
+      </button>
     </div>
   );
 }

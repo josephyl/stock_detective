@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { BotIcon } from "@/app/components/icons";
 
 export default function StockBrainChat() {
-  const [message, setMessage] = useState("What inventory needs attention today?");
+  const [message, setMessage] = useState("Why does this inventory need attention?");
   const [answer, setAnswer] = useState("");
   const [mode, setMode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,23 +23,33 @@ export default function StockBrainChat() {
     setMode(body.mode ?? "");
   }
 
+  const cleanAnswer = answer.replace(/\*\*/g, "").replace(/^[-*]\s+/gm, "• ");
+
   return (
-    <section className="card">
+    <section className="card chat-card">
       <div className="kicker">Conversational access</div>
       <h2>Ask Stock Brain</h2>
       <p className="subtitle">
-        Conversation is secondary to the agent workflow: Stock Brain first monitors and investigates automatically, then lets staff ask follow-up questions.
+        Use conversation for follow-up questions after the agent has already investigated the operational exception.
       </p>
-      <form className="form-grid" onSubmit={ask}>
-        <label>Question
-          <input value={message} onChange={(e) => setMessage(e.target.value)} />
-        </label>
-        <button className="button" disabled={busy}>{busy ? "Checking current evidence..." : "Ask Stock Brain"}</button>
+
+      <form className="chat-input-row" onSubmit={ask}>
+        <input
+          aria-label="Question for Stock Brain"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Ask why a case was flagged or what to check next..."
+        />
+        <button className="button" disabled={busy}>
+          <BotIcon />
+          {busy ? "Checking..." : "Ask"}
+        </button>
       </form>
+
       {answer && (
-        <div className="notice" style={{ marginTop: 14 }}>
+        <div className="notice ai-answer">
           <strong>{mode === "ai" ? "AI-grounded answer" : "Deterministic fallback"}</strong>
-          <p style={{ marginBottom: 0 }}>{answer}</p>
+          {cleanAnswer}
         </div>
       )}
     </section>
