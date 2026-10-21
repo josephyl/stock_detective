@@ -65,18 +65,18 @@ export default async function DashboardPage() {
           <div className="page-eyebrow">Inventory operations</div>
           <h1>Inventory overview</h1>
           <div className="subtitle">
-            See what can be trusted, what needs attention, and where Stock Brain is already investigating.
+            See what can be trusted, what needs attention, and where Detective Agent is already investigating.
           </div>
         </div>
 
         <div className="header-actions">
-          <span className="status-chip online">● Stock Brain active</span>
+          <span className="status-chip online">● Detective Agent active</span>
           <span className={aiEnabled ? "status-chip ai" : "status-chip"}>
             {aiEnabled ? "AI reasoning connected" : "Deterministic mode"}
           </span>
           <Link href="/agent" className="button">
             <BotIcon />
-            Open Stock Brain
+            Open Detective Agent
           </Link>
         </div>
       </div>
@@ -119,7 +119,7 @@ export default async function DashboardPage() {
             <div>
               <div className="kicker">Human attention queue</div>
               <h2>Priority exceptions</h2>
-              <div className="subtitle">Stock Brain has already prioritised the cases that deserve review.</div>
+              <div className="subtitle">Detective Agent has already prioritised the cases that deserve review.</div>
             </div>
             <Link href="/exceptions" className="button secondary">
               View all
@@ -197,7 +197,7 @@ export default async function DashboardPage() {
 
           <section className="card">
             <div className="kicker">Automation</div>
-            <h2>Stock Brain activity</h2>
+            <h2>Detective Agent activity</h2>
             <div className="source-list" style={{ marginTop: 14 }}>
               <div className="source-row compact">
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>

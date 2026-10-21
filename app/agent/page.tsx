@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AgentCaseActions, RunAgentButton } from "./controls";
-import StockBrainChat from "./chat";
+import DetectiveAgentChat from "./chat";
 import { AlertIcon, BotIcon, CheckIcon, SearchIcon } from "@/app/components/icons";
 
 function evidenceFromDetails(details: any) {
@@ -41,7 +41,7 @@ export default async function AgentPage() {
         <div className="page-header">
           <div>
             <div className="page-eyebrow">Human + AI inventory operations</div>
-            <h1>Stock Brain</h1>
+            <h1>Detective Agent</h1>
             <div className="subtitle">
               The agent investigates operational exceptions before a person needs to check multiple systems manually.
             </div>
@@ -74,7 +74,7 @@ export default async function AgentPage() {
         <div className="card agent-step">
           <div className="step-top"><span className="step-number">03</span><BotIcon /></div>
           <h3>Recommend</h3>
-          <div className="subtitle">Stock Brain explains the risk and prepares the next action.</div>
+          <div className="subtitle">Detective Agent explains the risk and prepares the next action.</div>
         </div>
         <div className="card agent-step">
           <div className="step-top"><span className="step-number">04</span><CheckIcon /></div>
@@ -181,7 +181,7 @@ export default async function AgentPage() {
                 </div>
 
                 <div className="agent-side">
-                  <StockBrainChat />
+                  <DetectiveAgentChat />
 
                   <section className="card">
                     <div className="kicker">Auditability</div>
@@ -205,12 +205,12 @@ export default async function AgentPage() {
         </>
       ) : (
         <>
-          <StockBrainChat />
+          <DetectiveAgentChat />
           <section className="card">
             <div className="empty-state">
               <div className="empty-icon"><BotIcon /></div>
               <h2>No agent cases yet</h2>
-              <p>Import inventory or fulfilment demo data. Stock Brain runs automatically after imports.</p>
+              <p>Import inventory or fulfilment demo data. Detective Agent runs automatically after imports.</p>
             </div>
           </section>
         </>

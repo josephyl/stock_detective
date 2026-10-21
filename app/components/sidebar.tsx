@@ -1,6 +1,6 @@
-
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -18,7 +18,7 @@ const groups = [
     label: "Workspace",
     items: [
       { href: "/", label: "Dashboard", icon: DashboardIcon },
-      { href: "/agent", label: "Stock Brain", icon: BotIcon },
+      { href: "/agent", label: "Detective Agent", icon: BotIcon },
     ],
   },
   {
@@ -44,9 +44,16 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand-row">
-        <div className="brand-mark">S</div>
+        <Image
+          src="/stockdetective-icon.png"
+          alt="StockDetective logo"
+          width={34}
+          height={34}
+          className="brand-logo"
+          priority
+        />
         <div className="brand">
-          StockTrust
+          StockDetective
           <small>Inventory intelligence</small>
         </div>
       </div>

@@ -1,10 +1,9 @@
-
 import "./theme.css";
 import Sidebar from "./components/sidebar";
 
 export const metadata = {
-  title: "StockTrust",
-  description: "Inventory intelligence and human-in-the-loop reconciliation",
+  title: "StockDetective",
+  description: "AI-assisted inventory investigation and human-in-the-loop reconciliation",
 };
 
 export default function RootLayout({

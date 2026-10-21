@@ -13,14 +13,14 @@ export function RunAgentButton() {
     const response = await fetch("/api/agent/run", { method: "POST" });
     const body = await response.json();
     setBusy(false);
-    if (!response.ok) return alert(body.error ?? "Unable to run Stock Brain.");
+    if (!response.ok) return alert(body.error ?? "Unable to run Detective Agent.");
     router.refresh();
   }
 
   return (
     <button className="button" onClick={run} disabled={busy}>
       <SearchIcon />
-      {busy ? "Investigating..." : "Run Stock Brain"}
+      {busy ? "Investigating..." : "Run Detective Agent"}
     </button>
   );
 }

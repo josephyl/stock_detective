@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { BotIcon } from "@/app/components/icons";
 
-export default function StockBrainChat() {
+export default function DetectiveAgentChat() {
   const [message, setMessage] = useState("Why does this inventory need attention?");
   const [answer, setAnswer] = useState("");
   const [mode, setMode] = useState("");
@@ -28,14 +28,14 @@ export default function StockBrainChat() {
   return (
     <section className="card chat-card">
       <div className="kicker">Conversational access</div>
-      <h2>Ask Stock Brain</h2>
+      <h2>Ask Detective Agent</h2>
       <p className="subtitle">
         Use conversation for follow-up questions after the agent has already investigated the operational exception.
       </p>
 
       <form className="chat-input-row" onSubmit={ask}>
         <input
-          aria-label="Question for Stock Brain"
+          aria-label="Question for Detective Agent"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Ask why a case was flagged or what to check next..."
