@@ -7,31 +7,42 @@ function caseLink(caseId: string) {
   return `${base}/agent#case-${caseId}`;
 }
 
-async function sendTeamsIfConfigured(agentCase: any, discrepancy: any) {
-  const webhook = process.env.TEAMS_WEBHOOK_URL;
-  if (!webhook) return { delivered: false, reason: "Teams webhook not configured." };
-
+function buildTeamsText(agentCase: any, discrepancy: any) {
   const product = discrepancy.canonical_products as any;
-  const text = [
-    "Stock Brain Alert",
-    `${product?.name ?? "Product"} (${product?.sku ?? "SKU"})`,
+  return [
+    "🚨 StockDetective Alert",
+    "",
+    `Product: ${product?.name ?? "Product"} (${product?.sku ?? "SKU"})`,
     `Issue: ${String(discrepancy.discrepancy_type ?? "").replaceAll("_", " ")}`,
+    `Severity: ${String(discrepancy.severity ?? "unknown").toUpperCase()}`,
     `Finding: ${agentCase.finding}`,
     `Business risk: ${agentCase.business_impact}`,
     `Recommended action: ${agentCase.recommended_action}`,
     `Confidence: ${agentCase.agent_confidence}%`,
-    `Review and approve: ${caseLink(agentCase.id)}`,
+    "",
+    `Review in StockDetective: ${caseLink(agentCase.id)}`,
   ].join("\n");
+}
+
+async function sendTeamsIfConfigured(agentCase: any, discrepancy: any) {
+  const webhook = process.env.TEAMS_WEBHOOK_URL;
+  if (!webhook) return { delivered: false, reason: "Teams webhook not configured." };
 
   try {
     const response = await fetch(webhook, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text: buildTeamsText(agentCase, discrepancy) }),
     });
-    return { delivered: response.ok, reason: response.ok ? "Delivered." : `HTTP ${response.status}` };
+    return {
+      delivered: response.ok,
+      reason: response.ok ? "Teams workflow accepted the alert." : `HTTP ${response.status}`,
+    };
   } catch (error) {
-    return { delivered: false, reason: error instanceof Error ? error.message : "Delivery failed." };
+    return {
+      delivered: false,
+      reason: error instanceof Error ? error.message : "Delivery failed.",
+    };
   }
 }
 
@@ -78,10 +89,11 @@ export async function runStockBrainAgent() {
           .update(payload)
           .eq("id", existing.id);
         if (updateError) throw updateError;
+
         await supabase.from("agent_events").insert({
           agent_case_id: existing.id,
           event_type: "assessment_refreshed",
-          detail: "Stock Brain refreshed its assessment from current evidence.",
+          detail: "Detective Agent refreshed its assessment from current evidence.",
         });
         updated++;
       }
@@ -99,12 +111,12 @@ export async function runStockBrainAgent() {
       {
         agent_case_id: createdCase.id,
         event_type: "exception_detected",
-        detail: "An inventory or fulfilment event triggered Stock Brain automatically.",
+        detail: "An inventory or fulfilment event triggered Detective Agent automatically.",
       },
       {
         agent_case_id: createdCase.id,
         event_type: "evidence_reviewed",
-        detail: "Stock Brain reviewed deterministic source evidence before making a recommendation.",
+        detail: "Detective Agent reviewed deterministic source evidence before making a recommendation.",
       },
       {
         agent_case_id: createdCase.id,
@@ -115,13 +127,15 @@ export async function runStockBrainAgent() {
 
     if (discrepancy.severity === "high" || discrepancy.discrepancy_type === "fulfilment_mismatch") {
       const delivery = await sendTeamsIfConfigured(createdCase, discrepancy);
+
       await supabase.from("agent_events").insert({
         agent_case_id: createdCase.id,
-        event_type: delivery.delivered ? "teams_alert_sent" : "teams_alert_queued",
+        event_type: delivery.delivered ? "teams_workflow_triggered" : "teams_alert_queued",
         detail: delivery.delivered
-          ? "High-priority alert was sent to Microsoft Teams."
-          : `Teams alert is ready but was not delivered: ${delivery.reason}`,
+          ? "StockDetective sent the high-priority alert to the configured Teams workflow."
+          : `Teams alert is ready but was not sent: ${delivery.reason}`,
       });
+
       if (delivery.delivered) teamsDelivered++;
     }
 
