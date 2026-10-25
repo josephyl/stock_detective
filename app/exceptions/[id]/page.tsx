@@ -4,6 +4,9 @@ import ExceptionActions from "./actions";
 import { trustBand, trustReason } from "@/lib/trust";
 import { buildReconciliationProposal } from "@/lib/proposal";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function confidenceClass(score: number) {
   if (score >= 85) return "good";
   if (score >= 65) return "warn";

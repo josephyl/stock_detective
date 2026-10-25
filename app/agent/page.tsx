@@ -4,6 +4,9 @@ import { AgentCaseActions, RunAgentButton } from "./controls";
 import DetectiveAgentChat from "./chat";
 import { AlertIcon, BotIcon, CheckIcon, SearchIcon } from "@/app/components/icons";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function evidenceFromDetails(details: any) {
   if (Array.isArray(details?.sources)) {
     return details.sources.map((s: any) => ({

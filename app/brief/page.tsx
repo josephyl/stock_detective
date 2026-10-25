@@ -3,6 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import SaveView from "./save-view";
 import { trustBand } from "@/lib/trust";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function BriefPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
   const severity = typeof params.severity === "string" ? params.severity : "all";

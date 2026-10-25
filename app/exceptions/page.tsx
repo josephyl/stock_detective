@@ -2,6 +2,9 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { trustBand } from "@/lib/trust";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function ExceptionsPage() {
   const supabase = createAdminClient();
 
