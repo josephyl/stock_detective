@@ -46,7 +46,10 @@ async function sendTeamsIfConfigured(agentCase: any, discrepancy: any) {
   }
 }
 
-export async function runStockBrainAgent() {
+export async function runStockBrainAgent(
+  options: { refreshExisting?: boolean } = {}
+) {
+  const refreshExisting = Boolean(options.refreshExisting);
   const supabase = createAdminClient();
 
   const { data: discrepancies, error } = await supabase
@@ -59,15 +62,23 @@ export async function runStockBrainAgent() {
   let created = 0;
   let updated = 0;
   let teamsDelivered = 0;
+  let skipped = 0;
 
   for (const discrepancy of discrepancies ?? []) {
-    const assessment = await assessDiscrepancy(discrepancy);
-
     const { data: existing } = await supabase
       .from("agent_cases")
       .select("id,status")
       .eq("discrepancy_id", discrepancy.id)
       .maybeSingle();
+
+    // Imports should only investigate NEW exceptions. This avoids re-running
+    // the LLM over every existing case on every CSV upload.
+    if (existing && !refreshExisting) {
+      skipped++;
+      continue;
+    }
+
+    const assessment = await assessDiscrepancy(discrepancy);
 
     const payload = {
       discrepancy_id: discrepancy.id,
@@ -142,5 +153,5 @@ export async function runStockBrainAgent() {
     created++;
   }
 
-  return { created, updated, teamsDelivered };
+  return { created, updated, skipped, teamsDelivered };
 }
