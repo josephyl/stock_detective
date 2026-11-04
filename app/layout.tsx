@@ -1,4 +1,5 @@
 import "./theme.css";
+import "./globals.css";
 import Sidebar from "./components/sidebar";
 
 export const metadata = {
