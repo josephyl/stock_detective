@@ -84,7 +84,7 @@ export default function ReorderSafetyPage() {
                   autoComplete="off"
                 />
 
-                {!selected && (query.length > 0 || products.length > 0) && (
+                {!selected && query.trim().length > 0 && (
                   <div className="product-results">
                     {searching && <div className="product-result muted">Searching products…</div>}
                     {!searching && products.map((product) => (
