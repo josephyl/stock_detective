@@ -1,19 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type Product = { id: string; name: string; sku: string };
 
 export default function ReorderSafetyPage() {
-  const [sku, setSku] = useState("HH-MGO550-500");
+  const [query, setQuery] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selected, setSelected] = useState<Product | null>(null);
   const [result, setResult] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const response = await fetch("/api/products/search?q=" + encodeURIComponent(query), {
+          signal: controller.signal,
+        });
+        const body = await response.json();
+        if (response.ok) setProducts(body.products ?? []);
+      } catch (error: any) {
+        if (error?.name !== "AbortError") setProducts([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 180);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query]);
 
   async function check(event: React.FormEvent) {
     event.preventDefault();
+    if (!selected) return;
     setBusy(true);
-    const response = await fetch("/api/reorder-safety?sku=" + encodeURIComponent(sku));
+    const response = await fetch("/api/reorder-safety?sku=" + encodeURIComponent(selected.sku));
     const body = await response.json();
     setBusy(false);
     setResult(body);
+  }
+
+  function choose(product: Product) {
+    setSelected(product);
+    setQuery(product.name);
+    setProducts([]);
+    setResult(null);
   }
 
   return (
@@ -22,30 +58,85 @@ export default function ReorderSafetyPage() {
         <div className="kicker">Replenishment guardrail</div>
         <h1>Reorder Safety Check</h1>
         <div className="subtitle">
-          Before someone relies on an inventory number, Detective Agent checks whether unresolved mismatches, stale data or fulfilment issues make that decision unsafe.
+          Search by product name or SKU. StockDetective checks whether the evidence is trustworthy before someone relies on the stock figure.
         </div>
       </section>
 
       <div className="upload-grid">
         <section className="card elevated">
-          <div className="kicker">Check a product</div>
-          <h2>Is the evidence safe to use?</h2>
+          <div className="kicker">Find a product</div>
+          <h2>What are you considering reordering?</h2>
+
           <form className="form-grid" onSubmit={check} style={{ marginTop: 18 }}>
             <label>
-              SKU
-              <input value={sku} onChange={(e) => setSku(e.target.value)} />
+              Product name or SKU
+              <div className="product-search">
+                <input
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setSelected(null);
+                  }}
+                  onFocus={() => {
+                    if (!query) setQuery("");
+                  }}
+                  placeholder="Try “Manuka Honey” or HH-MGO550-500"
+                  autoComplete="off"
+                />
+
+                {!selected && (query.length > 0 || products.length > 0) && (
+                  <div className="product-results">
+                    {searching && <div className="product-result muted">Searching products…</div>}
+                    {!searching && products.map((product) => (
+                      <button
+                        type="button"
+                        className="product-result"
+                        onClick={() => choose(product)}
+                        key={product.id}
+                      >
+                        <span>
+                          <strong>{product.name}</strong>
+                          <small>{product.sku}</small>
+                        </span>
+                        <span>Choose →</span>
+                      </button>
+                    ))}
+                    {!searching && query && products.length === 0 && (
+                      <div className="product-result muted">No matching products.</div>
+                    )}
+                  </div>
+                )}
+              </div>
             </label>
-            <button className="button" disabled={busy}>
+
+            {selected && (
+              <div className="selected-product">
+                <div>
+                  <span className="fact-label">Selected product</span>
+                  <strong>{selected.name}</strong>
+                  <span>{selected.sku}</span>
+                </div>
+                <button type="button" className="button secondary" onClick={() => {
+                  setSelected(null);
+                  setQuery("");
+                  setResult(null);
+                }}>
+                  Change
+                </button>
+              </div>
+            )}
+
+            <button className="button" disabled={busy || !selected}>
               {busy ? "Checking current evidence..." : "Check reorder safety"}
             </button>
           </form>
         </section>
 
         <aside className="card demo-guide">
-          <div className="kicker">Design boundary</div>
-          <h2>Decision support, not auto-ordering</h2>
+          <div className="kicker">What StockDetective checks</div>
+          <h2>Use the product people recognise</h2>
           <p className="subtitle">
-            The interview evidence says full automation can feel risky. This feature checks whether the data is trustworthy; a person still makes the replenishment decision.
+            Staff should not need to memorise SKUs. Search by the product name you use day-to-day; StockDetective resolves it to the correct SKU behind the scenes.
           </p>
         </aside>
       </div>
@@ -79,7 +170,7 @@ export default function ReorderSafetyPage() {
                       <div className="source-row" key={issue.id}>
                         <strong>{issue.discrepancy_type.replaceAll("_", " ")}</strong>
                         <span className={"badge " + issue.severity}>{issue.severity}</span>
-                        <span>{issue.confidence_score}% trust</span>
+                        <span>{issue.confidence_score}% evidence trust</span>
                         <span>{issue.summary}</span>
                       </div>
                     ))}
