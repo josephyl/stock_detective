@@ -65,10 +65,22 @@ async function sendTeamsIfConfigured(agentCase: any, discrepancy: any) {
   }
 }
 
+export type AgentProgressEvent = {
+  stage: "scan" | "evidence" | "rules" | "reasoning" | "autonomy" | "action" | "done";
+  title: string;
+  detail: string;
+};
+
 export async function runStockBrainAgent(
-  options: { refreshExisting?: boolean } = {}
+  options: {
+    refreshExisting?: boolean;
+    onProgress?: (event: AgentProgressEvent) => void | Promise<void>;
+  } = {}
 ) {
   const refreshExisting = Boolean(options.refreshExisting);
+  const progress = async (event: AgentProgressEvent) => {
+    if (options.onProgress) await options.onProgress(event);
+  };
   const supabase = createAdminClient();
 
   const { data: discrepancies, error } = await supabase
@@ -78,12 +90,25 @@ export async function runStockBrainAgent(
 
   if (error) throw error;
 
+  await progress({
+    stage: "scan",
+    title: "Scanning open exceptions",
+    detail: `Loaded ${(discrepancies ?? []).length} open case${(discrepancies ?? []).length === 1 ? "" : "s"} from current operational data.`,
+  });
+
   let created = 0;
   let updated = 0;
   let teamsDelivered = 0;
   let skipped = 0;
 
   for (const discrepancy of discrepancies ?? []) {
+    const productName = (discrepancy.canonical_products as any)?.name ?? "Inventory item";
+    await progress({
+      stage: "evidence",
+      title: `Checking evidence · ${productName}`,
+      detail: `Reviewing ${String(discrepancy.discrepancy_type ?? "").replaceAll("_", " ")} evidence across connected sources.`,
+    });
+
     const { data: existing } = await supabase
       .from("agent_cases")
       .select("id,status")
@@ -96,6 +121,18 @@ export async function runStockBrainAgent(
       skipped++;
       continue;
     }
+
+    await progress({
+      stage: "rules",
+      title: "Applying hard checks",
+      detail: `Evidence trust is ${discrepancy.confidence_score}%. Deterministic rules establish the facts before AI interpretation begins.`,
+    });
+
+    await progress({
+      stage: "reasoning",
+      title: "Preparing AI recommendation",
+      detail: "Interpreting the verified evidence into a likely cause, business impact and next best action.",
+    });
 
     const assessment = await assessDiscrepancy(discrepancy);
 
@@ -157,6 +194,12 @@ export async function runStockBrainAgent(
 
     const autonomy = autonomyPolicy(discrepancy, assessment);
 
+    await progress({
+      stage: "autonomy",
+      title: `Autonomy check · ${autonomy.label}`,
+      detail: autonomy.reason,
+    });
+
     if (autonomy.level === "auto") {
       await supabase.from("resolutions").insert({
         discrepancy_id: discrepancy.id,
@@ -177,6 +220,12 @@ export async function runStockBrainAgent(
         .update({ status: "resolved", updated_at: new Date().toISOString() })
         .eq("id", createdCase.id);
 
+      await progress({
+        stage: "action",
+        title: "Low-risk action completed",
+        detail: `Resolved to ${assessment.proposedQuantity} units within the bounded-autonomy policy and recorded the decision trail.`,
+      });
+
       await supabase.from("agent_events").insert({
         agent_case_id: createdCase.id,
         event_type: "auto_resolved_low_risk",
@@ -184,6 +233,11 @@ export async function runStockBrainAgent(
           `Bounded autonomy resolved this low-risk mismatch to ${assessment.proposedQuantity} units because evidence agreement and confidence passed the automation threshold.`,
       });
     } else if (autonomy.level === "escalate") {
+      await progress({
+        stage: "action",
+        title: "Escalating to a person",
+        detail: "The case is consequential enough to require human judgement. StockDetective is preparing the evidence and alert.",
+      });
       const delivery = await sendTeamsIfConfigured(createdCase, discrepancy);
 
       await supabase.from("agent_events").insert({
@@ -196,6 +250,11 @@ export async function runStockBrainAgent(
 
       if (delivery.delivered) teamsDelivered++;
     } else if (autonomy.level === "assist") {
+      await progress({
+        stage: "action",
+        title: "Verification request prepared",
+        detail: "The agent completed the investigation and stopped before changing inventory.",
+      });
       await supabase.from("agent_events").insert({
         agent_case_id: createdCase.id,
         event_type: "agent_verification_prepared",
@@ -205,6 +264,12 @@ export async function runStockBrainAgent(
 
     created++;
   }
+
+  await progress({
+    stage: "done",
+    title: "Investigation complete",
+    detail: `${created} new case${created === 1 ? "" : "s"}, ${updated} refreshed, ${teamsDelivered} Teams alert${teamsDelivered === 1 ? "" : "s"} delivered.`,
+  });
 
   return { created, updated, skipped, teamsDelivered };
 }
