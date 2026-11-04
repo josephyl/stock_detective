@@ -172,14 +172,17 @@ export default async function AgentPage() {
                       </div>
                     </div>
 
-                    <section className="decision-trace">
-                      <div className="decision-trace-head">
+                    <details className="decision-trace">
+                      <summary className="decision-trace-head">
                         <div>
                           <div className="fact-label">How Detective Agent reached this decision</div>
-                          <h3>Decision trace</h3>
+                          <h3>Why did the agent decide this?</h3>
                         </div>
-                        <span className="status-chip ai">Explainable AI</span>
-                      </div>
+                        <div className="trace-summary-right">
+                          <span className="status-chip ai">Explainable AI</span>
+                          <span className="trace-chevron">⌄</span>
+                        </div>
+                      </summary>
 
                       <div className="decision-trace-grid">
                         <div className="trace-step">
@@ -211,7 +214,10 @@ export default async function AgentPage() {
                           </div>
                         </div>
                       </div>
-                    </section>
+                      <div className="reasoning-note persistent">
+                        This is an evidence-and-decision summary. It intentionally does not expose hidden model chain-of-thought.
+                      </div>
+                    </details>
 
                     {!!evidence.length && (
                       <div>
