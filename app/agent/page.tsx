@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { AgentCaseActions, RunAgentButton } from "./controls";
 import DetectiveAgentChat from "./chat";
 import { AlertIcon, BotIcon, CheckIcon, SearchIcon } from "@/app/components/icons";
+import { priorityBand, priorityReasons, priorityScore } from "@/lib/priority";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -36,7 +37,13 @@ export default async function AgentPage() {
   if (error) throw error;
 
   const aiEnabled = Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL);
-  const openCases = (cases ?? []).filter((x: any) => x.status !== "resolved").length;
+  const sortedCases = [...(cases ?? [])].sort((a: any, b: any) => {
+    const aOpen = a.status === "resolved" ? 0 : 1;
+    const bOpen = b.status === "resolved" ? 0 : 1;
+    if (aOpen !== bOpen) return bOpen - aOpen;
+    return priorityScore(b.discrepancies) - priorityScore(a.discrepancies);
+  });
+  const openCases = sortedCases.filter((x: any) => x.status !== "resolved").length;
 
   return (
     <div className="stack">
@@ -86,13 +93,16 @@ export default async function AgentPage() {
         </div>
       </section>
 
-      {(cases ?? []).length > 0 ? (
+      {sortedCases.length > 0 ? (
         <>
-          {(cases ?? []).map((item: any) => {
+          {sortedCases.map((item: any) => {
             const d = item.discrepancies;
             const product = d?.canonical_products;
             const details = d?.details ?? {};
             const evidence = evidenceFromDetails(details).slice(0, 3);
+            const priority = priorityScore(d);
+            const priorityMeta = priorityBand(priority);
+            const whyPriority = priorityReasons(d);
             const events = [...(item.agent_events ?? [])].sort(
               (a: any, b: any) =>
                 new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -120,15 +130,42 @@ export default async function AgentPage() {
                       </div>
                     </div>
 
-                    <div className="confidence">
-                      <strong>{item.agent_confidence}%</strong>
-                      <span>agent confidence</span>
+                    <div className="trust-metrics">
+                      <div className="confidence">
+                        <strong>{d?.confidence_score ?? 0}%</strong>
+                        <span>evidence trust · hard</span>
+                      </div>
+                      <div className="confidence ai-confidence">
+                        <strong>{item.agent_confidence}%</strong>
+                        <span>AI confidence · soft</span>
+                      </div>
+                      <div className="confidence priority-confidence">
+                        <strong>{priority}</strong>
+                        <span>{priorityMeta.label.toLowerCase()}</span>
+                      </div>
                     </div>
                   </div>
 
                   <div className="case-body">
+                    <div className="explainability-strip">
+                      <div>
+                        <span className="fact-label">Why this is prioritised</span>
+                        <strong>{whyPriority.join(" · ")}</strong>
+                      </div>
+                      <div>
+                        <span className="fact-label">Autonomy boundary</span>
+                        <strong>
+                          {d?.severity === "low"
+                            ? "May auto-handle only if evidence agreement is strong"
+                            : "Human review required before consequential action"}
+                        </strong>
+                      </div>
+                    </div>
+
                     {!!evidence.length && (
-                      <div className="evidence-strip">
+                      <div>
+                        <div className="fact-label" style={{ marginBottom: 6 }}>Hard evidence</div>
+                        <div className="evidence-strip">
                         {evidence.map((e: any, index: number) => (
                           <div
                             className={"evidence-box " + (e.tone === "good" ? "good" : e.tone === "bad" ? "bad" : "")}
@@ -139,6 +176,7 @@ export default async function AgentPage() {
                             <span className="evidence-value">{e.value}</span>
                           </div>
                         ))}
+                        </div>
                       </div>
                     )}
 
@@ -148,17 +186,17 @@ export default async function AgentPage() {
                     </div>
 
                     <div className="fact-block blue">
-                      <div className="fact-label">Likely cause</div>
+                      <div className="fact-label">AI interpretation · likely cause</div>
                       <p>{item.likely_cause}</p>
                     </div>
 
                     <div className="fact-block risk">
-                      <div className="fact-label">Business risk</div>
+                      <div className="fact-label">AI interpretation · business risk</div>
                       <p>{item.business_impact}</p>
                     </div>
 
                     <div className="recommendation">
-                      <div className="fact-label">Recommended action</div>
+                      <div className="fact-label">AI recommendation</div>
                       <p><strong>{item.recommended_action}</strong></p>
 
                       {item.proposed_quantity == null && (
