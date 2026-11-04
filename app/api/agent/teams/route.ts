@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { priorityBand, priorityReasons, priorityScore } from "@/lib/priority";
-import { buildDecisionTrace } from "@/lib/explainability";
 import { loadTeamsAlertSettings } from "@/lib/teams-settings";
 import { buildTeamsAlertText } from "@/lib/teams-message";
 
@@ -12,7 +10,7 @@ export async function POST(request: Request) {
 
     const { data: agentCase, error } = await supabase
       .from("agent_cases")
-      .select("*, discrepancies(summary,severity,discrepancy_type,canonical_products(name,sku))")
+      .select("*, discrepancies(summary,severity,discrepancy_type,confidence_score,value_at_risk,details,canonical_products(name,sku))")
       .eq("id", case_id)
       .single();
 
