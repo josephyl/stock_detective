@@ -805,3 +805,122 @@ input[type="file"] { padding: 8px; background: #f8fafc; }
   .explainability-strip, .workflow-strip { grid-template-columns: 1fr; }
   .trust-metrics { justify-content: flex-start; }
 }
+
+
+/* StockDetective signature investigation language */
+.case-dossier-label {
+  width: fit-content;
+  padding: 4px 8px;
+  border: 1px dashed #9aa7ba;
+  border-radius: 4px;
+  color: #5c6677;
+  background: #f8fafc;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+.case-rank {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #111827;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .05em;
+}
+.case-rank.top {
+  background: linear-gradient(135deg, #c02f3d, #e35a42);
+  box-shadow: 0 5px 14px rgba(192,47,61,.18);
+}
+.queue-rank {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 7px;
+  border-radius: 8px;
+  background: #eef1f5;
+  color: #344054;
+  font-size: 11px;
+}
+.queue-rank.top {
+  background: var(--red-soft);
+  color: var(--red);
+}
+.decision-trace {
+  overflow: hidden;
+  border: 1px solid #cfd8e7;
+  border-radius: 14px;
+  background:
+    linear-gradient(rgba(91,95,239,.025), rgba(91,95,239,.025)),
+    repeating-linear-gradient(0deg, #fff, #fff 23px, #f2f5f9 24px);
+}
+.decision-trace-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 13px 14px;
+  border-bottom: 1px solid #dfe5ed;
+  background: rgba(255,255,255,.88);
+}
+.decision-trace-head h3 { font-size: 14px; }
+.decision-trace-grid { display: grid; }
+.trace-step {
+  display: grid;
+  grid-template-columns: 34px minmax(0,1fr);
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px dashed #dce3ec;
+}
+.trace-step:last-child { border-bottom: 0; }
+.trace-index {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #0c1424;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+}
+.trace-step strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+}
+.trace-step div > span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.ai-layer {
+  position: relative;
+  padding-left: 18px;
+}
+.ai-layer::before {
+  content: "AI";
+  position: absolute;
+  left: -9px;
+  top: 10px;
+  padding: 3px 5px;
+  border-radius: 4px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  transform: rotate(-90deg);
+}
+.case-card {
+  border-top: 3px solid #0c1424;
+}
+.agent-workspace:first-of-type .case-card {
+  border-top-color: var(--red);
+  box-shadow: 0 14px 38px rgba(16,24,40,.08);
+}
