@@ -16,7 +16,7 @@ function scoreClass(score: number) {
 export default async function DashboardPage() {
   const supabase = createAdminClient();
 
-  const [{ count: productCount }, { data: open }, { data: imports }, { data: agentCases }, { count: autoHandled }] =
+  const [{ count: productCount }, { data: open }, { data: imports }, { data: agentCases }, { count: autoHandled }, { data: validationEvents }] =
     await Promise.all([
       supabase.from("canonical_products").select("*", { count: "exact", head: true }),
       supabase
@@ -39,6 +39,10 @@ export default async function DashboardPage() {
         .from("agent_events")
         .select("*", { count: "exact", head: true })
         .eq("event_type", "auto_resolved_low_risk"),
+      supabase
+        .from("agent_events")
+        .select("event_type")
+        .in("event_type", ["human_approved", "human_rejected"]),
     ]);
 
   const findings = [...(open ?? [])].sort((a: any, b: any) => priorityScore(b) - priorityScore(a));
@@ -71,6 +75,12 @@ export default async function DashboardPage() {
       )
     : 100;
 
+  const validated = validationEvents ?? [];
+  const approvals = validated.filter((x: any) => x.event_type === "human_approved").length;
+  const recommendationAcceptance = validated.length
+    ? Math.round((approvals / validated.length) * 100)
+    : null;
+
   const uniqueImports = Array.from(
     new Map((imports ?? []).map((x: any) => [x.source_system, x])).values()
   ).slice(0, 4) as any[];
@@ -93,6 +103,9 @@ export default async function DashboardPage() {
           <span className={aiEnabled ? "status-chip ai" : "status-chip"}>
             {aiEnabled ? "AI reasoning connected" : "Deterministic mode"}
           </span>
+          <Link href="/update" className="button secondary">
+            Update stock
+          </Link>
           <Link href="/agent" className="button">
             <BotIcon />
             Open Detective Agent
@@ -100,7 +113,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-4">
+      <div className="grid grid-5">
         <div className="card metric-card">
           <div className="metric-label">Evidence trust</div>
           <div className={"metric " + scoreClass(averageConfidence)}>
@@ -128,9 +141,13 @@ export default async function DashboardPage() {
         </div>
 
         <div className="card metric-card">
-          <div className="metric-label">Auto-handled</div>
-          <div className="metric good">{autoHandled ?? 0}</div>
-          <div className="metric-note">Low-risk cases resolved within guardrails</div>
+          <div className="metric-label">Recommendation validation</div>
+          <div className={"metric " + (recommendationAcceptance == null ? "" : scoreClass(recommendationAcceptance))}>
+            {recommendationAcceptance == null ? "—" : recommendationAcceptance + "%"}
+          </div>
+          <div className="metric-note">
+            {validated.length ? `${approvals} of ${validated.length} human decisions approved` : "Builds from approve/reject outcomes"}
+          </div>
         </div>
       </div>
 
