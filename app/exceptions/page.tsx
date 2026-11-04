@@ -63,13 +63,17 @@ export default async function ExceptionsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row: any) => {
+              {rows.map((row: any, index: number) => {
                 const trust = trustBand(row.confidence_score);
                 const priority = priorityScore(row);
+                const openRank = row.status === "open"
+                  ? rows.filter((x: any) => x.status === "open").findIndex((x: any) => x.id === row.id) + 1
+                  : null;
                 const band = priorityBand(priority);
                 return (
                   <tr key={row.id}>
                     <td>
+                      {openRank && <strong className={"queue-rank " + (openRank === 1 ? "top" : "")}>#{openRank}</strong>}
                       <span className={"badge " + band.className}>{band.label}</span>
                       <div className="subtitle">{priority}/100 priority</div>
                     </td>
