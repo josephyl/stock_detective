@@ -8,6 +8,11 @@ import { buildDecisionTrace } from "@/lib/explainability";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+function isShippedStatus(status: unknown) {
+  const value = String(status ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  return ["shipped", "fulfilled", "dispatched", "complete", "completed"].includes(value);
+}
+
 function evidenceFromDetails(details: any) {
   if (Array.isArray(details?.sources)) {
     return details.sources.map((s: any) => ({
@@ -22,7 +27,7 @@ function evidenceFromDetails(details: any) {
       source: s.source,
       value: s.status,
       secondary: s.updated_at ? new Date(s.updated_at).toLocaleString() : "",
-      tone: String(s.status).toLowerCase().includes("shipped") ? "good" : "bad",
+      tone: isShippedStatus(s.status) ? "good" : "bad",
     }));
   }
   return [];
@@ -35,8 +40,8 @@ function caseHeadline(productName: string, discrepancy: any) {
   if (type === "fulfilment_mismatch") {
     const order = details.order_id ? `Order ${details.order_id}` : "An order";
     const records = Array.isArray(details.fulfilment_records) ? details.fulfilment_records : [];
-    const shipped = records.find((x: any) => String(x.status).toLowerCase().includes("shipped"));
-    const unshipped = records.find((x: any) => !String(x.status).toLowerCase().includes("shipped"));
+    const shipped = records.find((x: any) => isShippedStatus(x.status));
+    const unshipped = records.find((x: any) => !isShippedStatus(x.status));
     if (shipped && unshipped) {
       return `${productName}: ${order} is marked ${shipped.status} in ${shipped.source} but ${unshipped.status} in ${unshipped.source}`;
     }
@@ -166,8 +171,6 @@ export default async function AgentPage() {
           const product = d?.canonical_products;
           const details = d?.details ?? {};
           const evidence = evidenceFromDetails(details).slice(0, 4);
-          const priority = priorityScore(d);
-          const priorityMeta = priorityBand(priority);
           const whyPriority = priorityReasons(d);
           const trace = buildDecisionTrace(d, item);
           const caseRank = activeCases.findIndex((x: any) => x.id === item.id) + 1;
