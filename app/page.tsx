@@ -1,85 +1,3 @@
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-
-import Link from "next/link";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { ArrowIcon, BotIcon, CheckIcon, SearchIcon } from "./components/icons";
-import { priorityBand, priorityScore } from "@/lib/priority";
-
-function scoreClass(score: number) {
-  if (score >= 85) return "good";
-  if (score >= 65) return "warn";
-  return "bad";
-}
-
-export default async function DashboardPage() {
-  const supabase = createAdminClient();
-
-  const [{ count: productCount }, { data: open }, { data: imports }, { data: agentCases }, { count: autoHandled }, { data: validationEvents }] =
-    await Promise.all([
-      supabase.from("canonical_products").select("*", { count: "exact", head: true }),
-      supabase
-        .from("discrepancies")
-        .select(
-          "id,severity,confidence_score,value_at_risk,summary,discrepancy_type,canonical_product_id,location,canonical_products(name,sku)"
-        )
-        .eq("status", "open")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("source_imports")
-        .select("source_system,imported_at,row_count")
-        .order("imported_at", { ascending: false })
-        .limit(12),
-      supabase
-        .from("agent_cases")
-        .select("agent_confidence,status")
-        .neq("status", "resolved"),
-      supabase
-        .from("agent_events")
-        .select("*", { count: "exact", head: true })
-        .eq("event_type", "auto_resolved_low_risk"),
-      supabase
-        .from("agent_events")
-        .select("event_type")
-        .in("event_type", ["human_approved", "human_rejected"]),
-    ]);
-
-  const findings = [...(open ?? [])].sort((a: any, b: any) => priorityScore(b) - priorityScore(a));
-  const high = findings.filter((x) => x.severity === "high").length;
-  const totalRisk = findings.reduce(
-    (sum, x) => sum + Number(x.value_at_risk ?? 0),
-    0
-  );
-  const reorderRisk = new Set(
-    findings
-      .filter(
-        (x) =>
-          ["high", "medium"].includes(x.severity) ||
-          ["stale_record", "fulfilment_mismatch"].includes(x.discrepancy_type)
-      )
-      .map((x) => x.canonical_product_id)
-  ).size;
-
-  const averageConfidence = findings.length
-    ? Math.round(
-        findings.reduce((sum, x) => sum + x.confidence_score, 0) /
-          findings.length
-      )
-    : 100;
-
-  const averageAiConfidence = (agentCases ?? []).length
-    ? Math.round(
-        (agentCases ?? []).reduce((sum: number, x: any) => sum + Number(x.agent_confidence ?? 0), 0) /
-          (agentCases ?? []).length
-      )
-    : 100;
-
-  const validated = validationEvents ?? [];
-  const approvals = validated.filter((x: any) => x.event_type === "human_approved").length;
-  const recommendationAcceptance = validated.length
-    ? Math.round((approvals / validated.length) * 100)
-    : null;
 
   const uniqueImports = Array.from(
     new Map((imports ?? []).map((x: any) => [x.source_system, x])).values()
@@ -115,23 +33,9 @@ export default async function DashboardPage() {
 
       <div className="grid grid-5">
         <div className="card metric-card">
-          <div className="metric-label">Evidence trust</div>
-          <div className={"metric " + scoreClass(averageConfidence)}>
-            {averageConfidence}%
-          </div>
-          <div className="metric-note">Hard metric · source agreement + freshness</div>
-        </div>
-
-        <div className="card metric-card">
-          <div className="metric-label">AI confidence</div>
-          <div className={"metric " + scoreClass(averageAiConfidence)}>{averageAiConfidence}%</div>
-          <div className="metric-note">Soft metric · confidence in recommendations</div>
-        </div>
-
-        <div className="card metric-card">
           <div className="metric-label">Needs human review</div>
           <div className="metric">{findings.length}</div>
-          <div className="metric-note">Prioritised medium/high work first</div>
+          <div className="metric-note">Open cases waiting for human judgement</div>
         </div>
 
         <div className="card metric-card">
@@ -141,12 +45,26 @@ export default async function DashboardPage() {
         </div>
 
         <div className="card metric-card">
-          <div className="metric-label">Recommendation validation</div>
-          <div className={"metric " + (recommendationAcceptance == null ? "" : scoreClass(recommendationAcceptance))}>
-            {recommendationAcceptance == null ? "—" : recommendationAcceptance + "%"}
+          <div className="metric-label">Evidence trust</div>
+          <div className={"metric " + scoreClass(averageConfidence)}>
+            {averageConfidence}%
+          </div>
+          <div className="metric-note">Source agreement + freshness across open cases</div>
+        </div>
+
+        <div className="card metric-card">
+          <div className="metric-label">AI confidence</div>
+          <div className={"metric " + scoreClass(averageAiConfidence)}>{averageAiConfidence}%</div>
+          <div className="metric-note">Confidence in the current recommendations</div>
+        </div>
+
+        <div className="card metric-card">
+          <div className="metric-label">Last data update</div>
+          <div className="metric metric-time">
+            {imports?.[0]?.imported_at ? new Date(imports[0].imported_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
           </div>
           <div className="metric-note">
-            {validated.length ? `${approvals} of ${validated.length} human decisions approved` : "Builds from approve/reject outcomes"}
+            {imports?.[0]?.imported_at ? new Date(imports[0].imported_at).toLocaleDateString() : "No source data loaded"}
           </div>
         </div>
       </div>
@@ -159,8 +77,8 @@ export default async function DashboardPage() {
               <h2>Priority exceptions</h2>
               <div className="subtitle">Detective Agent has already prioritised the cases that deserve review.</div>
             </div>
-            <Link href="/exceptions" className="button secondary">
-              View all
+            <Link href="/agent" className="button secondary">
+              Open in Detective Agent
               <ArrowIcon />
             </Link>
           </div>
@@ -184,7 +102,6 @@ export default async function DashboardPage() {
                   <tr key={row.id}>
                     <td>
                       <span className={"badge " + band.className}>{band.label}</span>
-                      <div className="subtitle">{score}/100</div>
                     </td>
                     <td>
                       <Link href={"/exceptions/" + row.id}>
