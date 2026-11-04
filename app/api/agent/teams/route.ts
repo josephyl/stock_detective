@@ -1,20 +1,37 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { priorityBand, priorityReasons, priorityScore } from "@/lib/priority";
+import { buildDecisionTrace } from "@/lib/explainability";
 
 function buildTeamsText(agentCase: any, discrepancy: any, reviewUrl: string) {
   const product = discrepancy?.canonical_products as any;
+  const priority = priorityScore(discrepancy);
+  const band = priorityBand(priority);
+  const reasons = priorityReasons(discrepancy);
+  const trace = buildDecisionTrace(discrepancy, agentCase);
   return [
-    "🚨 StockDetective Alert",
+    priority >= 70 ? "🚨 StockDetective · DO THIS FIRST" : "🕵️ StockDetective · Review requested",
     "",
+    `Priority: ${priority}/100 · ${band.label}`,
     `Product: ${product?.name ?? "Product"} (${product?.sku ?? "SKU"})`,
     `Issue: ${String(discrepancy?.discrepancy_type ?? "").replaceAll("_", " ")}`,
-    `Severity: ${String(discrepancy?.severity ?? "unknown").toUpperCase()}`,
-    `Finding: ${agentCase.finding}`,
-    `Business risk: ${agentCase.business_impact}`,
-    `Recommended action: ${agentCase.recommended_action}`,
-    `Confidence: ${agentCase.agent_confidence}%`,
+    `Risk: ${String(discrepancy?.severity ?? "unknown").toUpperCase()}`,
     "",
-    `Review in StockDetective: ${reviewUrl}`,
+    "WHY THIS CASE",
+    reasons.map((x) => `• ${x}`).join("\n"),
+    "",
+    "HARD EVIDENCE",
+    trace.observed.map((x) => `• ${x}`).join("\n"),
+    `• Evidence trust: ${discrepancy?.confidence_score}%`,
+    "",
+    "AGENT RECOMMENDATION",
+    `${agentCase.recommended_action}`,
+    `AI confidence: ${agentCase.agent_confidence}%`,
+    "",
+    "HUMAN ROLE",
+    trace.boundary,
+    "",
+    `Open case: ${reviewUrl}`,
   ].join("\n");
 }
 
