@@ -2,8 +2,6 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assessDiscrepancy } from "@/lib/stock-brain";
 import { autonomyPolicy } from "@/lib/autonomy";
-import { priorityBand, priorityReasons, priorityScore } from "@/lib/priority";
-import { buildDecisionTrace } from "@/lib/explainability";
 import { loadTeamsAlertSettings, shouldSendTeamsAlert } from "@/lib/teams-settings";
 import { buildTeamsAlertText } from "@/lib/teams-message";
 
@@ -229,11 +227,25 @@ export async function runStockBrainAgent(
         title: "Verification request prepared",
         detail: "The agent completed the investigation and stopped before changing inventory.",
       });
-      await supabase.from("agent_events").insert({
-        agent_case_id: createdCase.id,
-        event_type: "agent_verification_prepared",
-        detail: "Detective Agent completed the investigation and prepared a verification request without changing inventory.",
-      });
+
+      const shouldAlert = shouldSendTeamsAlert(discrepancy, autonomy.level, teamsSettings);
+      if (shouldAlert) {
+        const delivery = await sendTeamsIfConfigured(createdCase, discrepancy, teamsSettings);
+        await supabase.from("agent_events").insert({
+          agent_case_id: createdCase.id,
+          event_type: delivery.delivered ? "teams_workflow_triggered" : "teams_alert_queued",
+          detail: delivery.delivered
+            ? "StockDetective sent the configured Teams alert."
+            : `Teams alert was not sent: ${delivery.reason}`,
+        });
+        if (delivery.delivered) teamsDelivered++;
+      } else {
+        await supabase.from("agent_events").insert({
+          agent_case_id: createdCase.id,
+          event_type: "agent_verification_prepared",
+          detail: "Detective Agent completed the investigation and prepared a verification request without changing inventory.",
+        });
+      }
     }
 
     created++;
