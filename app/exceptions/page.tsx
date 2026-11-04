@@ -20,7 +20,12 @@ export default async function ExceptionsPage() {
 
   if (error) throw error;
 
-  const rows = [...(data ?? [])].sort((a: any, b: any) => priorityScore(b) - priorityScore(a));
+  const rows = [...(data ?? [])].sort((a: any, b: any) => {
+    const aOpen = a.status === "open" ? 1 : 0;
+    const bOpen = b.status === "open" ? 1 : 0;
+    if (aOpen !== bOpen) return bOpen - aOpen;
+    return priorityScore(b) - priorityScore(a);
+  });
   const open = rows.filter((row: any) => row.status === "open").length;
   const high = rows.filter((row: any) => row.status === "open" && row.severity === "high").length;
 
