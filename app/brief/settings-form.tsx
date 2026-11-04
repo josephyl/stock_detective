@@ -110,7 +110,7 @@ export default function TeamsSettingsForm({ initial }: { initial: TeamsAlertSett
               <input
                 type="checkbox"
                 checked={Boolean(settings[key])}
-                onChange={(e) => set(key, e.target.checked as never)}
+                onChange={(e) => setSettings((current) => ({ ...current, [key]: e.target.checked }))}
               />
               <span><strong>{label}</strong></span>
             </label>
