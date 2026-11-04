@@ -730,3 +730,77 @@ input[type="file"] { padding: 8px; background: #f8fafc; }
   .source-row { grid-template-columns: 1fr; }
   .chat-input-row { flex-direction: column; }
 }
+
+
+/* Tutor feedback v2: explainability, prioritisation and bounded autonomy */
+.trust-metrics {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.trust-metrics .confidence {
+  min-width: 104px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+}
+.ai-confidence strong { color: var(--primary-dark); }
+.priority-confidence strong { color: var(--amber); }
+.explainability-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.explainability-strip > div {
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+.explainability-strip strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.capture-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.capture-tab {
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.capture-tab.active {
+  border-color: #b8baff;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+.workflow-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 8px;
+}
+.workflow-strip > div {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-soft);
+}
+.workflow-strip strong { display:block; font-size:10px; }
+.workflow-strip span { display:block; margin-top:3px; color:var(--muted); font-size:9px; }
+@media (max-width: 760px) {
+  .explainability-strip, .workflow-strip { grid-template-columns: 1fr; }
+  .trust-metrics { justify-content: flex-start; }
+}
