@@ -4,6 +4,7 @@ import { AgentCaseActions, RunAgentButton } from "./controls";
 import DetectiveAgentChat from "./chat";
 import { AlertIcon, BotIcon, CheckIcon, SearchIcon } from "@/app/components/icons";
 import { priorityBand, priorityReasons, priorityScore } from "@/lib/priority";
+import { buildDecisionTrace } from "@/lib/explainability";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -103,6 +104,8 @@ export default async function AgentPage() {
             const priority = priorityScore(d);
             const priorityMeta = priorityBand(priority);
             const whyPriority = priorityReasons(d);
+            const trace = buildDecisionTrace(d, item);
+            const caseRank = sortedCases.filter((x: any) => x.status !== "resolved").findIndex((x: any) => x.id === item.id) + 1;
             const events = [...(item.agent_events ?? [])].sort(
               (a: any, b: any) =>
                 new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -114,6 +117,11 @@ export default async function AgentPage() {
                   <div className="case-head">
                     <div>
                       <div className="case-chips">
+                        {item.status !== "resolved" && caseRank > 0 && (
+                          <span className={"case-rank " + (caseRank === 1 ? "top" : "")}>
+                            CASE #{caseRank}{caseRank === 1 ? " · DO THIS FIRST" : ""}
+                          </span>
+                        )}
                         <span className={"badge " + (d?.severity ?? "low")}>
                           {(d?.severity ?? "low").toUpperCase()} RISK
                         </span>
@@ -147,6 +155,8 @@ export default async function AgentPage() {
                   </div>
 
                   <div className="case-body">
+                    <div className="case-dossier-label">INVESTIGATION DOSSIER</div>
+
                     <div className="explainability-strip">
                       <div>
                         <span className="fact-label">Why this is prioritised</span>
@@ -161,6 +171,47 @@ export default async function AgentPage() {
                         </strong>
                       </div>
                     </div>
+
+                    <section className="decision-trace">
+                      <div className="decision-trace-head">
+                        <div>
+                          <div className="fact-label">How Detective Agent reached this decision</div>
+                          <h3>Decision trace</h3>
+                        </div>
+                        <span className="status-chip ai">Explainable AI</span>
+                      </div>
+
+                      <div className="decision-trace-grid">
+                        <div className="trace-step">
+                          <span className="trace-index">01</span>
+                          <div>
+                            <strong>Observed</strong>
+                            {trace.observed.map((line: string) => <span key={line}>{line}</span>)}
+                          </div>
+                        </div>
+                        <div className="trace-step">
+                          <span className="trace-index">02</span>
+                          <div>
+                            <strong>Rules fired</strong>
+                            {trace.rules.map((line: string) => <span key={line}>{line}</span>)}
+                          </div>
+                        </div>
+                        <div className="trace-step">
+                          <span className="trace-index">03</span>
+                          <div>
+                            <strong>AI interpretation begins</strong>
+                            <span>{trace.aiRole}</span>
+                          </div>
+                        </div>
+                        <div className="trace-step">
+                          <span className="trace-index">04</span>
+                          <div>
+                            <strong>Action boundary</strong>
+                            <span>{trace.boundary}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </section>
 
                     {!!evidence.length && (
                       <div>
@@ -185,12 +236,12 @@ export default async function AgentPage() {
                       <p>{item.finding}</p>
                     </div>
 
-                    <div className="fact-block blue">
+                    <div className="fact-block blue ai-layer">
                       <div className="fact-label">AI interpretation · likely cause</div>
                       <p>{item.likely_cause}</p>
                     </div>
 
-                    <div className="fact-block risk">
+                    <div className="fact-block risk ai-layer">
                       <div className="fact-label">AI interpretation · business risk</div>
                       <p>{item.business_impact}</p>
                     </div>
