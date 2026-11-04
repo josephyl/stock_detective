@@ -9,6 +9,21 @@ export type ReconciliationProposal = {
 export function buildReconciliationProposal(details: any): ReconciliationProposal {
   const sources = Array.isArray(details?.sources) ? details.sources : [];
 
+  const verified = sources
+    .filter((source: any) => String(source.source).toLowerCase() === "stockdetective")
+    .sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+
+  if (verified && Number.isFinite(Number(verified.quantity))) {
+    return {
+      quantity: Number(verified.quantity),
+      method: "Verified physical observation",
+      title: `Propose ${Number(verified.quantity)} units`,
+      reason:
+        "A human-confirmed StockDetective count is available, so it is treated as the strongest current evidence. Consequential medium/high-risk changes still require human review.",
+      confidence: "high",
+    };
+  }
+
   if (sources.length < 2) {
     return {
       quantity: null,
