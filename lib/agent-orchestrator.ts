@@ -136,7 +136,42 @@ export async function runStockBrainAgent(
       },
     ]);
 
-    if (discrepancy.severity === "high" || discrepancy.discrepancy_type === "fulfilment_mismatch") {
+    const autoEligible =
+      discrepancy.severity === "low" &&
+      discrepancy.discrepancy_type === "quantity_mismatch" &&
+      assessment.proposedQuantity != null &&
+      assessment.confidence >= 85;
+
+    if (autoEligible) {
+      await supabase.from("resolutions").insert({
+        discrepancy_id: discrepancy.id,
+        verified_quantity: assessment.proposedQuantity,
+        method: "Detective Agent bounded autonomy",
+        notes:
+          "Low-risk mismatch auto-resolved because independent evidence strongly agreed. The action remains fully auditable.",
+        resolved_by: "Detective Agent",
+      });
+
+      await supabase
+        .from("discrepancies")
+        .update({ status: "resolved", updated_at: new Date().toISOString() })
+        .eq("id", discrepancy.id);
+
+      await supabase
+        .from("agent_cases")
+        .update({ status: "resolved", updated_at: new Date().toISOString() })
+        .eq("id", createdCase.id);
+
+      await supabase.from("agent_events").insert({
+        agent_case_id: createdCase.id,
+        event_type: "auto_resolved_low_risk",
+        detail:
+          `Bounded autonomy resolved this low-risk mismatch to ${assessment.proposedQuantity} units because evidence agreement and confidence passed the automation threshold.`,
+      });
+    } else if (
+      discrepancy.severity === "high" ||
+      discrepancy.discrepancy_type === "fulfilment_mismatch"
+    ) {
       const delivery = await sendTeamsIfConfigured(createdCase, discrepancy);
 
       await supabase.from("agent_events").insert({
