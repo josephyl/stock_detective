@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { trustBand } from "@/lib/trust";
+import { priorityBand, priorityScore } from "@/lib/priority";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -19,7 +20,7 @@ export default async function ExceptionsPage() {
 
   if (error) throw error;
 
-  const rows = data ?? [];
+  const rows = [...(data ?? [])].sort((a: any, b: any) => priorityScore(b) - priorityScore(a));
   const open = rows.filter((row: any) => row.status === "open").length;
   const high = rows.filter((row: any) => row.status === "open" && row.severity === "high").length;
 
@@ -29,9 +30,9 @@ export default async function ExceptionsPage() {
         <div className="header-row">
           <div>
             <div className="kicker">Human attention queue</div>
-            <h1>Exceptions</h1>
+            <h1>Review queue</h1>
             <div className="subtitle">
-              Review only the records where current evidence is inconsistent, stale or incomplete.
+              Start with the cases that create the most risk. Low-risk work can be handled automatically when the evidence is strong enough.
             </div>
           </div>
           <div className="header-actions">
@@ -46,6 +47,7 @@ export default async function ExceptionsPage() {
           <table>
             <thead>
               <tr>
+                <th>Priority</th>
                 <th>Product</th>
                 <th>Issue</th>
                 <th>Location</th>
@@ -58,8 +60,14 @@ export default async function ExceptionsPage() {
             <tbody>
               {rows.map((row: any) => {
                 const trust = trustBand(row.confidence_score);
+                const priority = priorityScore(row);
+                const band = priorityBand(priority);
                 return (
                   <tr key={row.id}>
+                    <td>
+                      <span className={"badge " + band.className}>{band.label}</span>
+                      <div className="subtitle">{priority}/100 priority</div>
+                    </td>
                     <td>
                       <Link href={"/exceptions/" + row.id}>
                         <strong>{row.canonical_products?.name}</strong>
@@ -85,7 +93,7 @@ export default async function ExceptionsPage() {
               })}
               {!rows.length && (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={8}>
                     <div className="empty-state">
                       <div className="empty-icon">✓</div>
                       <h2>No exceptions</h2>
