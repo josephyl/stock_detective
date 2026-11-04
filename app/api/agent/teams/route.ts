@@ -2,38 +2,8 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { priorityBand, priorityReasons, priorityScore } from "@/lib/priority";
 import { buildDecisionTrace } from "@/lib/explainability";
-
-function buildTeamsText(agentCase: any, discrepancy: any, reviewUrl: string) {
-  const product = discrepancy?.canonical_products as any;
-  const priority = priorityScore(discrepancy);
-  const band = priorityBand(priority);
-  const reasons = priorityReasons(discrepancy);
-  const trace = buildDecisionTrace(discrepancy, agentCase);
-  return [
-    priority >= 70 ? "🚨 StockDetective · DO THIS FIRST" : "🕵️ StockDetective · Review requested",
-    "",
-    `Priority: ${priority}/100 · ${band.label}`,
-    `Product: ${product?.name ?? "Product"} (${product?.sku ?? "SKU"})`,
-    `Issue: ${String(discrepancy?.discrepancy_type ?? "").replaceAll("_", " ")}`,
-    `Risk: ${String(discrepancy?.severity ?? "unknown").toUpperCase()}`,
-    "",
-    "WHY THIS CASE",
-    reasons.map((x) => `• ${x}`).join("\n"),
-    "",
-    "HARD EVIDENCE",
-    trace.observed.map((x) => `• ${x}`).join("\n"),
-    `• Evidence trust: ${discrepancy?.confidence_score}%`,
-    "",
-    "AGENT RECOMMENDATION",
-    `${agentCase.recommended_action}`,
-    `AI confidence: ${agentCase.agent_confidence}%`,
-    "",
-    "HUMAN ROLE",
-    trace.boundary,
-    "",
-    `Open case: ${reviewUrl}`,
-  ].join("\n");
-}
+import { loadTeamsAlertSettings } from "@/lib/teams-settings";
+import { buildTeamsAlertText } from "@/lib/teams-message";
 
 export async function POST(request: Request) {
   try {
@@ -53,7 +23,8 @@ export async function POST(request: Request) {
     const discrepancy = agentCase.discrepancies as any;
     const baseUrl = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
     const reviewUrl = `${baseUrl}/agent#case-${agentCase.id}`;
-    const text = buildTeamsText(agentCase, discrepancy, reviewUrl);
+    const settings = await loadTeamsAlertSettings(supabase);
+    const text = buildTeamsAlertText(agentCase, discrepancy, reviewUrl, settings);
 
     const webhook = process.env.TEAMS_WEBHOOK_URL;
     let triggered = false;
