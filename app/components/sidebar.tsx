@@ -56,21 +56,20 @@ const groups = [
     label: "Today",
     items: [
       { href: "/", label: "Overview", icon: DashboardIcon },
-      { href: "/exceptions", label: "Review queue", icon: AlertIcon },
-      { href: "/update", label: "Update stock", icon: UploadIcon },
-    ],
-  },
-  {
-    label: "AI & controls",
-    items: [
       { href: "/agent", label: "Detective Agent", icon: BotIcon },
       { href: "/reorder", label: "Reorder safety", icon: ShieldIcon },
     ],
   },
   {
-    label: "More",
+    label: "Alerts & preferences",
     items: [
-      { href: "/brief", label: "Morning brief", icon: BriefIcon },
+      { href: "/brief", label: "Teams alerts", icon: BriefIcon },
+    ],
+  },
+  {
+    label: "Data & sync",
+    items: [
+      { href: "/update", label: "Update stock", icon: UploadIcon },
       { href: "/upload", label: "Inventory import", icon: UploadIcon },
       { href: "/fulfilment", label: "Fulfilment import", icon: TruckIcon },
     ],
