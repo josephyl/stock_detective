@@ -1,6 +1,9 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assessDiscrepancy } from "@/lib/stock-brain";
+import { autonomyPolicy } from "@/lib/autonomy";
+import { priorityBand, priorityReasons, priorityScore } from "@/lib/priority";
+import { buildDecisionTrace } from "@/lib/explainability";
 
 function caseLink(caseId: string) {
   const base = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
@@ -9,18 +12,34 @@ function caseLink(caseId: string) {
 
 function buildTeamsText(agentCase: any, discrepancy: any) {
   const product = discrepancy.canonical_products as any;
+  const priority = priorityScore(discrepancy);
+  const band = priorityBand(priority);
+  const trace = buildDecisionTrace(discrepancy, agentCase);
+  const reasons = priorityReasons(discrepancy);
   return [
-    "🚨 StockDetective Alert",
+    priority >= 70 ? "🚨 StockDetective · DO THIS FIRST" : "🕵️ StockDetective · Review requested",
     "",
+    `# Priority: ${priority}/100 · ${band.label}`,
     `Product: ${product?.name ?? "Product"} (${product?.sku ?? "SKU"})`,
     `Issue: ${String(discrepancy.discrepancy_type ?? "").replaceAll("_", " ")}`,
-    `Severity: ${String(discrepancy.severity ?? "unknown").toUpperCase()}`,
-    `Finding: ${agentCase.finding}`,
-    `Business risk: ${agentCase.business_impact}`,
-    `Recommended action: ${agentCase.recommended_action}`,
-    `Confidence: ${agentCase.agent_confidence}%`,
+    `Risk: ${String(discrepancy.severity ?? "unknown").toUpperCase()}`,
     "",
-    `Review in StockDetective: ${caseLink(agentCase.id)}`,
+    "WHY IT IS HERE",
+    reasons.map((x) => `• ${x}`).join("\n"),
+    "",
+    "HARD EVIDENCE",
+    trace.observed.map((x) => `• ${x}`).join("\n"),
+    `• Evidence trust: ${discrepancy.confidence_score}%`,
+    "",
+    "DETECTIVE AGENT",
+    `Finding: ${agentCase.finding}`,
+    `AI confidence: ${agentCase.agent_confidence}%`,
+    `Recommended next action: ${agentCase.recommended_action}`,
+    "",
+    "WHAT THE AGENT NEEDS FROM YOU",
+    trace.boundary,
+    "",
+    `Open case: ${caseLink(agentCase.id)}`,
   ].join("\n");
 }
 
@@ -136,13 +155,9 @@ export async function runStockBrainAgent(
       },
     ]);
 
-    const autoEligible =
-      discrepancy.severity === "low" &&
-      discrepancy.discrepancy_type === "quantity_mismatch" &&
-      assessment.proposedQuantity != null &&
-      assessment.confidence >= 85;
+    const autonomy = autonomyPolicy(discrepancy, assessment);
 
-    if (autoEligible) {
+    if (autonomy.level === "auto") {
       await supabase.from("resolutions").insert({
         discrepancy_id: discrepancy.id,
         verified_quantity: assessment.proposedQuantity,
@@ -168,10 +183,7 @@ export async function runStockBrainAgent(
         detail:
           `Bounded autonomy resolved this low-risk mismatch to ${assessment.proposedQuantity} units because evidence agreement and confidence passed the automation threshold.`,
       });
-    } else if (
-      discrepancy.severity === "high" ||
-      discrepancy.discrepancy_type === "fulfilment_mismatch"
-    ) {
+    } else if (autonomy.level === "escalate") {
       const delivery = await sendTeamsIfConfigured(createdCase, discrepancy);
 
       await supabase.from("agent_events").insert({
@@ -183,6 +195,12 @@ export async function runStockBrainAgent(
       });
 
       if (delivery.delivered) teamsDelivered++;
+    } else if (autonomy.level === "assist") {
+      await supabase.from("agent_events").insert({
+        agent_case_id: createdCase.id,
+        event_type: "agent_verification_prepared",
+        detail: "Detective Agent completed the investigation and prepared a verification request without changing inventory.",
+      });
     }
 
     created++;
