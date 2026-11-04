@@ -4,46 +4,15 @@ import { assessDiscrepancy } from "@/lib/stock-brain";
 import { autonomyPolicy } from "@/lib/autonomy";
 import { priorityBand, priorityReasons, priorityScore } from "@/lib/priority";
 import { buildDecisionTrace } from "@/lib/explainability";
+import { loadTeamsAlertSettings, shouldSendTeamsAlert } from "@/lib/teams-settings";
+import { buildTeamsAlertText } from "@/lib/teams-message";
 
 function caseLink(caseId: string) {
   const base = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
   return `${base}/agent#case-${caseId}`;
 }
 
-function buildTeamsText(agentCase: any, discrepancy: any) {
-  const product = discrepancy.canonical_products as any;
-  const priority = priorityScore(discrepancy);
-  const band = priorityBand(priority);
-  const trace = buildDecisionTrace(discrepancy, agentCase);
-  const reasons = priorityReasons(discrepancy);
-  return [
-    priority >= 70 ? "🚨 StockDetective · DO THIS FIRST" : "🕵️ StockDetective · Review requested",
-    "",
-    `# Priority: ${priority}/100 · ${band.label}`,
-    `Product: ${product?.name ?? "Product"} (${product?.sku ?? "SKU"})`,
-    `Issue: ${String(discrepancy.discrepancy_type ?? "").replaceAll("_", " ")}`,
-    `Risk: ${String(discrepancy.severity ?? "unknown").toUpperCase()}`,
-    "",
-    "WHY IT IS HERE",
-    reasons.map((x) => `• ${x}`).join("\n"),
-    "",
-    "HARD EVIDENCE",
-    trace.observed.map((x) => `• ${x}`).join("\n"),
-    `• Evidence trust: ${discrepancy.confidence_score}%`,
-    "",
-    "DETECTIVE AGENT",
-    `Finding: ${agentCase.finding}`,
-    `AI confidence: ${agentCase.agent_confidence}%`,
-    `Recommended next action: ${agentCase.recommended_action}`,
-    "",
-    "WHAT THE AGENT NEEDS FROM YOU",
-    trace.boundary,
-    "",
-    `Open case: ${caseLink(agentCase.id)}`,
-  ].join("\n");
-}
-
-async function sendTeamsIfConfigured(agentCase: any, discrepancy: any) {
+async function sendTeamsIfConfigured(agentCase: any, discrepancy: any, settings: any) {
   const webhook = process.env.TEAMS_WEBHOOK_URL;
   if (!webhook) return { delivered: false, reason: "Teams webhook not configured." };
 
@@ -51,7 +20,7 @@ async function sendTeamsIfConfigured(agentCase: any, discrepancy: any) {
     const response = await fetch(webhook, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: buildTeamsText(agentCase, discrepancy) }),
+      body: JSON.stringify({ text: buildTeamsAlertText(agentCase, discrepancy, caseLink(agentCase.id), settings) }),
     });
     return {
       delivered: response.ok,
@@ -78,6 +47,7 @@ export async function runStockBrainAgent(
   } = {}
 ) {
   const refreshExisting = Boolean(options.refreshExisting);
+  const teamsSettings = await loadTeamsAlertSettings(createAdminClient());
   const progress = async (event: AgentProgressEvent) => {
     if (options.onProgress) await options.onProgress(event);
   };
@@ -238,7 +208,11 @@ export async function runStockBrainAgent(
         title: "Escalating to a person",
         detail: "The case is consequential enough to require human judgement. StockDetective is preparing the evidence and alert.",
       });
-      const delivery = await sendTeamsIfConfigured(createdCase, discrepancy);
+
+      const shouldAlert = shouldSendTeamsAlert(discrepancy, autonomy.level, teamsSettings);
+      const delivery = shouldAlert
+        ? await sendTeamsIfConfigured(createdCase, discrepancy, teamsSettings)
+        : { delivered: false, reason: "Current Teams alert preferences filtered this case out." };
 
       await supabase.from("agent_events").insert({
         agent_case_id: createdCase.id,
