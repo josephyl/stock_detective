@@ -53,23 +53,24 @@ function StockDetectiveMark() {
 
 const groups = [
   {
-    label: "Workspace",
+    label: "Today",
     items: [
-      { href: "/", label: "Dashboard", icon: DashboardIcon },
+      { href: "/", label: "Overview", icon: DashboardIcon },
+      { href: "/exceptions", label: "Review queue", icon: AlertIcon },
+      { href: "/update", label: "Update stock", icon: UploadIcon },
+    ],
+  },
+  {
+    label: "AI & controls",
+    items: [
       { href: "/agent", label: "Detective Agent", icon: BotIcon },
-    ],
-  },
-  {
-    label: "Operations",
-    items: [
-      { href: "/exceptions", label: "Exceptions", icon: AlertIcon },
       { href: "/reorder", label: "Reorder safety", icon: ShieldIcon },
-      { href: "/brief", label: "Morning brief", icon: BriefIcon },
     ],
   },
   {
-    label: "Data",
+    label: "More",
     items: [
+      { href: "/brief", label: "Morning brief", icon: BriefIcon },
       { href: "/upload", label: "Inventory import", icon: UploadIcon },
       { href: "/fulfilment", label: "Fulfilment import", icon: TruckIcon },
     ],
@@ -119,7 +120,7 @@ export default function Sidebar() {
           <span className="status-dot" />
           <strong>Week 7 PoC</strong>
         </div>
-        <span>Human-in-the-loop agent</span>
+        <span>Bounded-autonomy inventory agent</span>
       </div>
     </aside>
   );
