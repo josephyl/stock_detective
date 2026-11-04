@@ -187,7 +187,7 @@ export default async function DashboardPage() {
                     <tr key={row.id}>
                       <td><span className={"badge " + band.className}>{band.label}</span></td>
                       <td>
-                        <Link href={"/agent#case-" + row.id}>
+                        <Link href="/agent">
                           <strong>{row.canonical_products?.name ?? "Product"}</strong>
                           <div className="subtitle">{row.canonical_products?.sku}</div>
                         </Link>
