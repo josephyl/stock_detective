@@ -18,7 +18,7 @@ No actionable P0/P1/P2 visual issues found in the inspected desktop states. The 
 1. **Typography:** The rendered workspace uses a consistent, legible UI sans-serif scale with prominent Products heading, medium-weight column labels, and restrained secondary copy. Hierarchy follows the screenshots' compact admin-dashboard patterns. Long product names remain readable in the first table column; there is no observed text collision or overflow at the inspected desktop size.
 2. **Spacing/layout rhythm:** A slim persistent sidebar, topbar, four KPI tiles, search/status toolbar, and dense tabular inventory list echo the reference page architecture. Card padding, radii, table row height, and restrained borders are internally consistent. This is an inspiration-led adaptation, not a 1:1 copy of any single mockup.
 3. **Colors/tokens:** Light neutral background, white elevated cards, subtle gray borders, and a purple primary action are consistent with the Biosynthesie and UnityWare references. Semantic warning/red and success/green states remain independently legible; they communicate inventory discrepancies rather than arbitrary retail catalog statuses.
-4. **Image quality/assets:** Unlike the retail screenshots, the actual StockDetective schema does not provide a canonical product-photo URL for each row. The new table therefore intentionally avoids fabricated product images, placeholder avatars, and fake sales graphs. Existing StockDetective branding is preserved. This is a data-integrity decision, not an unresolved visual defect.
+4. **Image quality/assets:** The follow-up implementation adds six distinct, photorealistic illustrative product images, each framed in a 46 px square thumbnail and a 250 px detail preview. Subjects are recognizable (honey jars, propolis spray, royal jelly capsules, honeycomb, beeswax balm); studio backdrops and sharpness are consistent. All illustrative images are explicitly labelled as unverified packaging in the accessible alt text and details drawer. Real images are loaded from the optional image URL field when available. No unrelated product photography is silently substituted, and unknown SKUs retain a clear No image empty state.
 5. **Copy/content:** Labels describe real StockDetective concepts (`Products catalogued`, `Open exceptions`, `High priority`, `Latest source update`, `Evidence trust`). The detail drawer warns that source quantities are not automatically verified balances. No fictional revenue/customer counts were carried over from the references.
 6. **Controls/icons:** Sidebar icons, search field, source filter, status pills, row action, checkboxes, CSV export, and product details drawer are visually aligned in the inspected states. Keyboard `Escape` closes the drawer. All central task controls have working handlers in the browser QA flow.
 
@@ -35,19 +35,21 @@ No actionable P0/P1/P2 visual issues found in the inspected desktop states. The 
 
 - **Live data:** Browser QA used local sample rows. The Supabase-backed `/products` route built successfully and the GitHub preview deployment is `READY`, but a signed-in real-data smoke test was not possible from the protected Vercel preview in this QA session. Validate it before merging.
 - **Responsive breakpoints:** Desktop was visually checked; tablet and mobile widths were not visually captured in this session. The CSS includes responsive rules, but these remain a future verification pass.
-- **Product imagery:** If the user later adds product-image URLs to the data schema, a thumbnail column could be introduced to match the retail reference more closely.
+- **Product imagery:** An optional Supabase schema migration now supports a verified product image URL. The migration has not been applied to the user's database; until it is, only the explicitly illustrative known demo SKUs have images.
 
 ## Comparison history
 
 - **Initial full-view capture:** `/demo` at desktop browser viewport; no clipping or typographic collisions observed. Also inspected drawer, filtered, searched, and selected states.
 - **Combined-source review:** `/qa` displayed the primary source screenshot beside browser-rendered `ProductsWorkspace` in one browser screenshot. The first combined comparison used an iframe that did not render, so the local QA fixture was changed to render the actual React workspace component directly. A second screenshot then confirmed both panels visible. No deployed product code changed because of the QA fixture issue.
 - **Focused region review:** The unscaled `/demo` screenshot was used to inspect the KPI card text, toolbar spacing, first table rows, status pills, and sidebar navigation because detail text was too small in the full-view side-by-side screenshot.
+- **Product-image follow-up (2026-11-06):** The user requested product imagery. Six individual photo-style assets were generated and placed in the sample product catalogue. Browser captures at the same desktop viewport showed correctly aligned thumbnails, legible names/SKUs, and a larger image in the side drawer. An updated `/qa` side-by-side comparison confirmed the added image rhythm matches the supplied retail table inspiration. No P0/P1/P2 layout problems observed. No further fix iteration was required.
 
 ## Implementation checklist
 
 - [x] Preserve StockDetective identity and its inventory investigation workflow.
 - [x] Implement redesigned navigation, KPI cards, product table, filters, selection, export, and evidence drawer.
 - [x] Browser-verify the most important desktop interactions.
+- [x] Add photo thumbnails and a large detail preview, image-error empty state, accessible labels, and accurate/illustrative distinctions.
 - [x] Pass the local production build and obtain a `READY` Vercel preview build.
 - [ ] Verify `/products` against real Supabase data in the authenticated preview.
 - [ ] Inspect responsive tablet and mobile layouts before wider release.
@@ -55,6 +57,6 @@ No actionable P0/P1/P2 visual issues found in the inspected desktop states. The 
 
 ## Follow-up polish (P3)
 
-- Add first-party product thumbnails only when canonical asset URLs exist.
+- Apply the optional product-image SQL migration and replace sample artwork with owner-approved real photos.
 - Consider a compact skeleton state during long data loads.
 - Optionally add a per-product discrepancy count breakdown in the drawer after the underlying data model supplies linked case details.
