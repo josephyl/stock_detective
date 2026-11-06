@@ -1,6 +1,7 @@
 import "./theme.css";
 import "./globals.css";
 import Sidebar from "./components/sidebar";
+import Topbar from "./components/topbar";
 
 export const metadata = {
   title: "StockDetective",
@@ -15,9 +16,12 @@ export default function RootLayout({
       <body>
         <div className="shell">
           <Sidebar />
-          <main className="main">
-            <div className="main-inner">{children}</div>
-          </main>
+          <div className="workspace">
+            <Topbar />
+            <main className="main">
+              <div className="main-inner">{children}</div>
+            </main>
+          </div>
         </div>
       </body>
     </html>
