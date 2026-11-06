@@ -69,6 +69,13 @@ function caseHeadline(productName: string, discrepancy: any) {
   return `${productName}: ${String(discrepancy?.summary ?? "inventory evidence needs review")}`;
 }
 
+function firstSentence(value: unknown, fallback = "") {
+  const text = String(value ?? fallback).trim();
+  if (!text) return fallback;
+  const match = text.match(/^.*?[.!?](?:\s|$)/);
+  return (match?.[0] ?? text).trim();
+}
+
 export default async function AgentPage() {
   const supabase = createAdminClient();
   const { data: cases, error } = await supabase
@@ -238,32 +245,28 @@ export default async function AgentPage() {
                   </section>
                 )}
 
-                <div className="fact-block">
-                  <div className="fact-label">Finding</div>
-                  <p>{item.finding}</p>
-                </div>
-
-                <div className="grid grid-2 case-interpretation-grid">
-                  <div className="fact-block blue">
-                    <div className="fact-label">AI interpretation · likely cause</div>
-                    <p>{item.likely_cause}</p>
+                <section className="case-glance">
+                  <div className="glance-item problem">
+                    <span>What&apos;s wrong</span>
+                    <strong>{firstSentence(item.finding, d?.summary)}</strong>
                   </div>
-                  <div className="fact-block risk">
-                    <div className="fact-label">Business impact</div>
-                    <p>{item.business_impact}</p>
+                  <div className="glance-item impact">
+                    <span>Why it matters</span>
+                    <strong>{firstSentence(item.business_impact, "This could lead to a bad inventory decision.")}</strong>
                   </div>
-                </div>
+                  <div className="glance-item action">
+                    <span>What to do</span>
+                    <strong>{firstSentence(item.recommended_action, "Review the evidence before changing inventory.")}</strong>
+                  </div>
+                </section>
 
-                <div className="recommendation">
-                  <div className="fact-label">Recommended next action</div>
-                  <p><strong>{item.recommended_action}</strong></p>
+                {item.proposed_quantity == null && (
+                  <div className="notice glance-guardrail">
+                    Human verification is required before any inventory quantity changes.
+                  </div>
+                )}
 
-                  {item.proposed_quantity == null && (
-                    <div className="notice" style={{ marginTop: 10 }}>
-                      The evidence is not strong enough for an autonomous quantity change. Human verification is required.
-                    </div>
-                  )}
-
+                <div className="glance-actions">
                   <AgentCaseActions
                     caseId={item.id}
                     canApprove={item.proposed_quantity != null && item.status === "awaiting_review"}
@@ -276,6 +279,27 @@ export default async function AgentPage() {
                     Review full source evidence
                   </Link>
                 </div>
+
+                <details className="case-analysis-footer">
+                  <summary>
+                    <span>More analysis</span>
+                    <span className="trace-chevron">⌄</span>
+                  </summary>
+                  <div className="case-analysis-content">
+                    <div className="fact-block blue">
+                      <div className="fact-label">Likely cause</div>
+                      <p>{item.likely_cause}</p>
+                    </div>
+                    <div className="fact-block risk">
+                      <div className="fact-label">Full business impact</div>
+                      <p>{item.business_impact}</p>
+                    </div>
+                    <div className="recommendation">
+                      <div className="fact-label">Full recommended action</div>
+                      <p><strong>{item.recommended_action}</strong></p>
+                    </div>
+                  </div>
+                </details>
 
                 <details className="case-explainability-footer">
                   <summary>
