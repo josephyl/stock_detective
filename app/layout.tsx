@@ -1,5 +1,6 @@
 import "./theme.css";
 import "./globals.css";
+import "./redesign.css";
 import Sidebar from "./components/sidebar";
 import Topbar from "./components/topbar";
 
