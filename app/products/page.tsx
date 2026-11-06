@@ -10,6 +10,9 @@ export type ProductInventoryRow = {
   name: string;
   imageUrl: string | null;
   imageIsIllustrative: boolean;
+  imageIsRepresentative: boolean;
+  imageCaption: string | null;
+  imageSourceUrl: string | null;
   createdAt: string;
   quantity: number | null;
   source: string | null;
@@ -30,6 +33,76 @@ const illustrativeImages: Record<string, string> = {
   "RJ-CAP-60": "/product-samples/royal-jelly.webp",
   "HC-350": "/product-samples/honeycomb.webp",
   "BB-LIP-15": "/product-samples/lip-balm.webp",
+};
+
+// Curated photographs of real, publicly listed products. These are matched
+// individually to the catalogue SKU, never by an unreliable text-image search.
+// An image_url explicitly verified in Supabase still takes precedence.
+const sourcedProductPhotos: Record<string, {
+  src: string;
+  caption: string;
+  sourceUrl: string;
+  representative?: boolean;
+}> = {
+  "BH-OMEGA-180": {
+    src: "/product-verified/blue-hills-omega.webp",
+    caption: "Category reference only: real omega-3 fish-oil softgels. This is not Blue Hills packaging; an exact Blue Hills Omega 3 180-capsule listing could not be verified.",
+    sourceUrl: "https://www.rosacea.org/blog/2024/july/vitamins-and-minerals-may-play-role-in-rosacea-therapy",
+    representative: true,
+  },
+  "BH-VITD-100": {
+    src: "/product-verified/blue-hills-vitamin-d-photo.webp",
+    caption: "Category reference only: real vitamin D softgel capsules. This is not Blue Hills packaging; an exact Blue Hills Vitamin D 100-capsule listing could not be verified.",
+    sourceUrl: "https://www.news-medical.net/news/20230704/Vitamin-D-supplementation-reduces-risk-of-major-cardiovascular-events-in-older-adults.aspx",
+    representative: true,
+  },
+  "GN-COLLAGEN-30": {
+    src: "/product-verified/goodlife-collagen.webp",
+    caption: "Representative Goodlife product: Ultra Collagen 100 capsules. This is NOT the catalogue record's Collagen 30 Sachets packaging.",
+    sourceUrl: "https://goodlifenutritionhealth.com.au/products/ultra-collagen",
+    representative: true,
+  },
+  "GN-PROBIOTIC-60": {
+    src: "/product-verified/goodlife-probiotic.webp",
+    caption: "Representative Goodlife product: Probiotics Enzymes Plus, 60 hard capsules. It includes digestive enzymes and may differ from this generic 60-capsule entry.",
+    sourceUrl: "https://goodlifenutritionhealth.com.au/products/probiotics-enzymes-plus",
+    representative: true,
+  },
+  "HH-MGO100-500": {
+    src: "/product-verified/haddrells-umf5-250g.webp",
+    caption: "Representative Haddrell's product: UMF 5+ / MGO 83+ 250g. The catalogue record says MGO 100+ 500g, so neither rating nor package size is identical.",
+    sourceUrl: "https://zywiolzdrowia.pl/products/miod-manuka-umf-5-mgo-83-250-g-haddrells-of-cambridge",
+    representative: true,
+  },
+  "HH-MGO400-500": {
+    src: "/product-verified/haddrells-umf13-mgo404-500g.webp",
+    caption: "Haddrell's UMF 13+ / MGO 404+ · 500g. Manufacturer-labelled 404+ within this 400+ product tier.",
+    sourceUrl: "https://www.robinsons.com.sg/products/haddrells-of-cambridge-manuka-honey-umf%C2%AE-13-500g",
+  },
+  "HH-MGO550-500": {
+    src: "/product-verified/haddrells-umf16-mgo570-500g.webp",
+    caption: "Reference photo only: Haddrell's UMF 16+ / MGO 570+ · 500g. The catalogue record says MGO 550+; verify packaging before using commercially.",
+    sourceUrl: "https://www.manukacanada.ca/products/haddrells-manuka-honey-umf-16",
+    representative: true,
+  },
+  "TOP-ROYAL-60": {
+    src: "/product-verified/toplife-royal-jelly-365.webp",
+    caption: "Representative Top Life product: Royal Jelly 1000 Max 2.2% HDA, 365 capsules. This differs from the 60-capsule catalogue entry.",
+    sourceUrl: "https://www.beevitamins.com.au/products/top-life-royal-jelly-1000-max-2-2-hda-premium-quality-365-capsules",
+    representative: true,
+  },
+  "WH-CALCIUM-120": {
+    src: "/product-verified/wealthy-health-calcium.webp",
+    caption: "Representative Wealthy Health product: Bio-Calcium Liquid soft capsules. This is not confirmed to be the catalogue's Calcium 120 Tablets.",
+    sourceUrl: "https://www.wealthyhealth.com.au/product-page/bio-calcium-liquid-1",
+    representative: true,
+  },
+  "WH-LUTEIN-60": {
+    src: "/product-verified/wealthy-health-lutein.webp",
+    caption: "Representative Wealthy Health product: Maxi-Visual Guard with bilberry, lutein and eyebright, 60 soft capsules; the formula name differs from this catalogue entry.",
+    sourceUrl: "https://www.wealthyhealth.com.au/product-page/maxi-visual-guard-bilberry-10000-plus-eye-health-tablets",
+    representative: true,
+  },
 };
 
 function safeImageUrl(value: unknown): string | null {
@@ -72,6 +145,9 @@ export default async function ProductsPage() {
 
   const rows: ProductInventoryRow[] = (productsResult.data ?? []).map((product: any) => {
     const verifiedImage = safeImageUrl(product.image_url);
+    const sourcedPhoto = sourcedProductPhotos[product.sku];
+    const useSourcedPhoto = !verifiedImage && Boolean(sourcedPhoto);
+    const useIllustration = !verifiedImage && !sourcedPhoto && Boolean(illustrativeImages[product.sku]);
     const record = latestRecord.get(product.id);
     const openIssues = issues.get(product.id) ?? [];
     const severity = (["high", "medium", "low"] as const).find((level) =>
@@ -84,8 +160,11 @@ export default async function ProductsPage() {
       id: product.id,
       sku: product.sku,
       name: product.name,
-      imageUrl: verifiedImage ?? illustrativeImages[product.sku] ?? null,
-      imageIsIllustrative: !verifiedImage && Boolean(illustrativeImages[product.sku]),
+      imageUrl: verifiedImage ?? sourcedPhoto?.src ?? illustrativeImages[product.sku] ?? null,
+      imageIsIllustrative: useIllustration,
+      imageIsRepresentative: useSourcedPhoto && Boolean(sourcedPhoto?.representative),
+      imageCaption: useSourcedPhoto ? sourcedPhoto.caption : null,
+      imageSourceUrl: useSourcedPhoto ? sourcedPhoto.sourceUrl : null,
       createdAt: product.created_at,
       quantity: record?.quantity ?? null,
       source: record?.source_system ?? null,

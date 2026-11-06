@@ -127,8 +127,8 @@ export default function ProductsWorkspace({ rows, openIssueCount, highPriorityCo
                   <td><input type="checkbox" aria-label={`Select ${row.name}`} checked={selected.includes(row.id)} onChange={() => toggleSelected(row.id)} /></td>
                   <td>
                     <button type="button" className="product-name-button" onClick={() => setActiveProduct(row)}>
-                      <ProductPhoto src={row.imageUrl} name={row.name} illustrative={row.imageIsIllustrative} />
-                      <span className="product-name-text"><strong>{row.name}</strong><small>{row.sku}</small></span>
+                      <ProductPhoto src={row.imageUrl} name={row.name} illustrative={row.imageIsIllustrative} representative={row.imageIsRepresentative} />
+                      <span className="product-name-text"><strong>{row.name}</strong><small>{row.sku}{row.imageIsRepresentative && <span className="product-photo-indicator"> · Representative photo</span>}</small></span>
                     </button>
                   </td>
                   <td><strong className="quantity-value">{formatQuantity(row.quantity)}</strong><small className="product-cell-note">{row.observedAt ? `Observed ${formatDate(row.observedAt)}` : "No observations"}</small></td>
@@ -156,8 +156,9 @@ export default function ProductsWorkspace({ rows, openIssueCount, highPriorityCo
           </div>
           <div className="product-drawer-body">
             <div className="product-photo-preview">
-              <ProductPhoto src={activeProduct.imageUrl} name={activeProduct.name} illustrative={activeProduct.imageIsIllustrative} large />
-              <p>{activeProduct.imageIsIllustrative ? "Illustrative preview only — upload or link the actual product photo to replace it." : activeProduct.imageUrl ? "Product image" : "No photo linked to this product yet."}</p>
+              <ProductPhoto src={activeProduct.imageUrl} name={activeProduct.name} illustrative={activeProduct.imageIsIllustrative} representative={activeProduct.imageIsRepresentative} large />
+              <p>{activeProduct.imageCaption ?? (activeProduct.imageIsIllustrative ? "Illustrative preview only — upload or link the actual product photo to replace it." : activeProduct.imageUrl ? "Product image" : "No exact product photograph could be verified. Link a genuine photo for this SKU to complete the catalogue.")}</p>
+              {activeProduct.imageSourceUrl && <a className="product-photo-source" href={activeProduct.imageSourceUrl} target="_blank" rel="noopener noreferrer">View original product listing ↗</a>}
             </div>
             <div className="product-detail-pair"><span>Latest reported quantity</span><strong>{formatQuantity(activeProduct.quantity)} units</strong></div>
             <div className="product-detail-pair"><span>Reporting system</span><strong>{activeProduct.source ?? "Not available"}</strong></div>
