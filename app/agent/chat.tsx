@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { BotIcon } from "@/app/components/icons";
 
-export default function DetectiveAgentChat() {
-  const [message, setMessage] = useState("Why does this inventory need attention?");
+export default function DetectiveAgentChat({ discrepancyId }: { discrepancyId?: string }) {
+  const [message, setMessage] = useState("What should I verify next?");
   const [answer, setAnswer] = useState("");
   const [mode, setMode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -15,7 +15,7 @@ export default function DetectiveAgentChat() {
     const response = await fetch("/api/agent/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, discrepancy_id: discrepancyId }),
     });
     const body = await response.json();
     setBusy(false);
@@ -27,10 +27,10 @@ export default function DetectiveAgentChat() {
 
   return (
     <section className="card chat-card">
-      <div className="kicker">Conversational access</div>
+      <div className="kicker">Case follow-up</div>
       <h2>Ask Detective Agent</h2>
       <p className="subtitle">
-        Use conversation for follow-up questions after the agent has already investigated the operational exception.
+        Ask a follow-up question grounded in this case and its source evidence.
       </p>
 
       <form className="chat-input-row" onSubmit={ask}>
@@ -38,7 +38,7 @@ export default function DetectiveAgentChat() {
           aria-label="Question for Detective Agent"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Ask why a case was flagged or what to check next..."
+          placeholder="Ask what to verify, why it matters, or what would resolve the case..."
         />
         <button className="button" disabled={busy}>
           <BotIcon />

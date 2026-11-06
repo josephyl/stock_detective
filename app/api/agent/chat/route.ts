@@ -4,41 +4,56 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
   try {
-    const { message } = await request.json();
+    const { message, discrepancy_id } = await request.json();
     const question = String(message ?? "").trim();
+    const discrepancyId = String(discrepancy_id ?? "").trim();
+
     if (!question) {
       return NextResponse.json({ error: "Message is required." }, { status: 400 });
     }
 
     const supabase = createAdminClient();
+
+    let caseQuery = supabase
+      .from("agent_cases")
+      .select("finding,likely_cause,business_impact,recommended_action,agent_confidence,status,proposed_quantity,discrepancy_id,discrepancies(discrepancy_type,severity,summary,confidence_score,details,canonical_products(name,sku))")
+      .order("updated_at", { ascending: false })
+      .limit(discrepancyId ? 1 : 20);
+
+    if (discrepancyId) caseQuery = caseQuery.eq("discrepancy_id", discrepancyId);
+
+    let discrepancyQuery = supabase
+      .from("discrepancies")
+      .select("id,discrepancy_type,severity,summary,confidence_score,status,details,canonical_products(name,sku)")
+      .limit(discrepancyId ? 1 : 30);
+
+    if (discrepancyId) {
+      discrepancyQuery = discrepancyQuery.eq("id", discrepancyId);
+    } else {
+      discrepancyQuery = discrepancyQuery.eq("status", "open");
+    }
+
     const [{ data: cases }, { data: discrepancies }] = await Promise.all([
-      supabase
-        .from("agent_cases")
-        .select("finding,likely_cause,business_impact,recommended_action,agent_confidence,status,proposed_quantity,discrepancies(discrepancy_type,severity,canonical_products(name,sku))")
-        .order("updated_at", { ascending: false })
-        .limit(20),
-      supabase
-        .from("discrepancies")
-        .select("discrepancy_type,severity,summary,confidence_score,status,canonical_products(name,sku)")
-        .eq("status", "open")
-        .limit(30),
+      caseQuery,
+      discrepancyQuery,
     ]);
 
-    const context = { cases: cases ?? [], open_discrepancies: discrepancies ?? [] };
+    const context = {
+      scope: discrepancyId ? "single_case" : "open_inventory",
+      cases: cases ?? [],
+      discrepancies: discrepancies ?? [],
+    };
+
     const apiKey = process.env.OPENAI_API_KEY;
     const model = process.env.OPENAI_MODEL;
 
     if (!apiKey || !model) {
-      const open = discrepancies ?? [];
-      const top = open.slice(0, 3).map((d: any) => {
-        const p = d.canonical_products as any;
-        return `${p?.name ?? "Product"} (${p?.sku ?? "SKU"}): ${d.summary}`;
-      });
+      const current = discrepancies?.[0] as any;
+      const product = current?.canonical_products;
       return NextResponse.json({
-        answer:
-          open.length === 0
-            ? "There are no open inventory exceptions right now."
-            : `There are ${open.length} open exception(s). Highest-priority current evidence includes: ${top.join(" | ")}. Open Stock Brain for the recommended actions and approval steps.`,
+        answer: current
+          ? `${product?.name ?? "This product"}: ${current.summary}. Evidence trust is ${current.confidence_score}%. Review the source evidence and complete the recommended verification step before changing inventory.`
+          : "There is not enough case evidence available to answer that question.",
         mode: "deterministic",
       });
     }
@@ -50,7 +65,7 @@ export async function POST(request: Request) {
         {
           role: "system",
           content:
-            "You are Stock Brain, an inventory operations agent. Answer only from the supplied StockTrust data. Never invent quantities, shipment states or causes. If the data cannot answer the question, say so and recommend the appropriate verification step. You may explain, summarise and recommend, but you may not claim to have changed inventory or placed an order. Keep answers concise.",
+            "You are Detective Agent, an inventory operations assistant. Answer only from the supplied StockDetective case data. Never invent quantities, shipment states, causes, dates, or evidence. Explain what the evidence supports, what remains uncertain, and what verification would resolve the uncertainty. Do not claim to have changed inventory or placed an order. Keep answers concise and case-specific.",
         },
         {
           role: "user",
@@ -60,7 +75,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      answer: response.output_text || "I could not produce an answer from the available evidence.",
+      answer: response.output_text || "I could not produce an answer from the available case evidence.",
       mode: "ai",
     });
   } catch (error) {

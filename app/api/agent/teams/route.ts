@@ -1,22 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-function buildTeamsText(agentCase: any, discrepancy: any, reviewUrl: string) {
-  const product = discrepancy?.canonical_products as any;
-  return [
-    "🚨 StockDetective Alert",
-    "",
-    `Product: ${product?.name ?? "Product"} (${product?.sku ?? "SKU"})`,
-    `Issue: ${String(discrepancy?.discrepancy_type ?? "").replaceAll("_", " ")}`,
-    `Severity: ${String(discrepancy?.severity ?? "unknown").toUpperCase()}`,
-    `Finding: ${agentCase.finding}`,
-    `Business risk: ${agentCase.business_impact}`,
-    `Recommended action: ${agentCase.recommended_action}`,
-    `Confidence: ${agentCase.agent_confidence}%`,
-    "",
-    `Review in StockDetective: ${reviewUrl}`,
-  ].join("\n");
-}
+import { loadTeamsAlertSettings } from "@/lib/teams-settings";
+import { buildTeamsAlertText } from "@/lib/teams-message";
 
 export async function POST(request: Request) {
   try {
@@ -25,7 +10,7 @@ export async function POST(request: Request) {
 
     const { data: agentCase, error } = await supabase
       .from("agent_cases")
-      .select("*, discrepancies(summary,severity,discrepancy_type,canonical_products(name,sku))")
+      .select("*, discrepancies(summary,severity,discrepancy_type,confidence_score,value_at_risk,details,canonical_products(name,sku))")
       .eq("id", case_id)
       .single();
 
@@ -36,7 +21,8 @@ export async function POST(request: Request) {
     const discrepancy = agentCase.discrepancies as any;
     const baseUrl = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
     const reviewUrl = `${baseUrl}/agent#case-${agentCase.id}`;
-    const text = buildTeamsText(agentCase, discrepancy, reviewUrl);
+    const settings = await loadTeamsAlertSettings(supabase);
+    const text = buildTeamsAlertText(agentCase, discrepancy, reviewUrl, settings);
 
     const webhook = process.env.TEAMS_WEBHOOK_URL;
     let triggered = false;

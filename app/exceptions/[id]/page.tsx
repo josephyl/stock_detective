@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import ExceptionActions from "./actions";
 import { trustBand, trustReason } from "@/lib/trust";
 import { buildReconciliationProposal } from "@/lib/proposal";
+import DetectiveAgentChat from "@/app/agent/chat";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -120,7 +121,7 @@ export default async function ExceptionDetailPage({
           <div className="kicker">Deterministic facts</div>
           <h2>Source evidence</h2>
           <div className="subtitle">
-            Stock Brain never invents stock quantities or shipment states.
+            StockDetective treats source quantities and shipment states as deterministic evidence.
           </div>
 
           <div className="source-list" style={{ marginTop: 16 }}>
@@ -168,7 +169,7 @@ export default async function ExceptionDetailPage({
 
         <section className="card detail-panel">
           <div className="kicker">AI interpretation</div>
-          <h2>Stock Brain assessment</h2>
+          <h2>Detective Agent assessment</h2>
           <div className="subtitle">
             Grounded in the deterministic evidence shown on the left.
           </div>
@@ -231,6 +232,8 @@ export default async function ExceptionDetailPage({
           </div>
         </section>
       </div>
+
+      <DetectiveAgentChat discrepancyId={data.id} />
     </div>
   );
 }
