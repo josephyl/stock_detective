@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowIcon, SearchIcon } from "@/app/components/icons";
 import type { ProductInventoryRow } from "./page";
 
@@ -15,7 +15,7 @@ function formatQuantity(value: number | null) {
 function formatDate(value: string | null) {
   if (!value) return "Not available";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "Not available" : date.toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" });
+  return Number.isNaN(date.getTime()) ? "Not available" : date.toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short", timeZone: "Australia/Sydney" });
 }
 
 function exportCsv(rows: ProductInventoryRow[]) {
@@ -42,6 +42,17 @@ export default function ProductsWorkspace({ rows, openIssueCount, highPriorityCo
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
   const [activeProduct, setActiveProduct] = useState<ProductInventoryRow | null>(null);
+  const closeDrawerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!activeProduct) return;
+    closeDrawerRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActiveProduct(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [activeProduct]);
 
   const sources = useMemo(() => [...new Set(rows.map((row) => row.source).filter((value): value is string => Boolean(value)))].sort(), [rows]);
   const filtered = useMemo(() => rows.filter((row) => {
@@ -89,7 +100,7 @@ export default function ProductsWorkspace({ rows, openIssueCount, highPriorityCo
         <div className="card product-kpi"><span>Products catalogued</span><strong>{formatQuantity(rows.length)}</strong><small>Known SKUs across imports</small></div>
         <div className="card product-kpi"><span>Open exceptions</span><strong>{formatQuantity(openIssueCount)}</strong><small>Issues awaiting investigation</small></div>
         <div className="card product-kpi"><span>High priority</span><strong className={highPriorityCount ? "bad" : "good"}>{formatQuantity(highPriorityCount)}</strong><small>Cases to address first</small></div>
-        <div className="card product-kpi"><span>Latest source update</span><strong className="product-kpi-date">{lastImportAt ? new Date(lastImportAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "—"}</strong><small>{lastImportAt ? formatDate(lastImportAt) : "No imports recorded"}</small></div>
+        <div className="card product-kpi"><span>Latest source update</span><strong className="product-kpi-date">{lastImportAt ? new Date(lastImportAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" }) : "—"}</strong><small>{lastImportAt ? formatDate(lastImportAt) : "No imports recorded"}</small></div>
       </section>
 
       <section className="card products-panel">
@@ -97,9 +108,9 @@ export default function ProductsWorkspace({ rows, openIssueCount, highPriorityCo
           <label className="product-search"><SearchIcon /><input aria-label="Search products" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Search product name, SKU or location" /></label>
           <label className="product-source-filter"><span>Source</span><select aria-label="Filter by latest source" value={source} onChange={(event) => { setSource(event.target.value); setPage(1); }}><option value="all">All sources</option>{sources.map((item) => <option key={item}>{item}</option>)}</select></label>
           <div className="product-status-tabs" role="group" aria-label="Filter product status">
-            <button type="button" className={filter === "all" ? "active" : ""} onClick={() => setStatus("all")}>All <span>{rows.length}</span></button>
-            <button type="button" className={filter === "review" ? "active" : ""} onClick={() => setStatus("review")}>Needs review</button>
-            <button type="button" className={filter === "clear" ? "active" : ""} onClick={() => setStatus("clear")}>No open issues</button>
+            <button type="button" aria-pressed={filter === "all"} className={filter === "all" ? "active" : ""} onClick={() => setStatus("all")}>All <span>{rows.length}</span></button>
+            <button type="button" aria-pressed={filter === "review"} className={filter === "review" ? "active" : ""} onClick={() => setStatus("review")}>Needs review</button>
+            <button type="button" aria-pressed={filter === "clear"} className={filter === "clear" ? "active" : ""} onClick={() => setStatus("clear")}>No open issues</button>
           </div>
         </div>
 
@@ -131,7 +142,7 @@ export default function ProductsWorkspace({ rows, openIssueCount, highPriorityCo
 
       {selectedRows.length > 0 && <div className="product-bulk-bar" role="status"><strong>{selectedRows.length} selected</strong><button type="button" onClick={() => exportCsv(selectedRows)}>Export selected</button><button type="button" onClick={() => setSelected([])}>Clear selection</button></div>}
 
-      {activeProduct && <div className="product-drawer-backdrop" onClick={() => setActiveProduct(null)}><aside className="product-drawer" role="dialog" aria-modal="true" aria-labelledby="product-drawer-title" onClick={(event) => event.stopPropagation()}><div className="product-drawer-header"><div><div className="page-eyebrow">Product evidence</div><h2 id="product-drawer-title">{activeProduct.name}</h2><p>{activeProduct.sku}</p></div><button type="button" aria-label="Close product details" onClick={() => setActiveProduct(null)}>×</button></div><div className="product-drawer-body"><div className="product-detail-pair"><span>Latest reported quantity</span><strong>{formatQuantity(activeProduct.quantity)} units</strong></div><div className="product-detail-pair"><span>Reporting system</span><strong>{activeProduct.source ?? "Not available"}</strong></div><div className="product-detail-pair"><span>Location</span><strong>{activeProduct.location ?? "Not available"}</strong></div><div className="product-detail-pair"><span>Observation date</span><strong>{formatDate(activeProduct.observedAt)}</strong></div><div className="product-detail-pair"><span>Recorded unit cost</span><strong>{activeProduct.unitCost == null ? "Not available" : activeProduct.unitCost.toLocaleString("en-AU", { style: "currency", currency: "AUD" })}</strong></div><div className="product-detail-pair"><span>Open discrepancies</span><strong>{activeProduct.issueCount}</strong></div><div className="notice">Reported source quantities are not automatically verified stock balances. Review conflicting evidence before making changes.</div></div><div className="product-drawer-actions"><Link href="/agent" className="button">Review in Detective Agent</Link><Link href="/update" className="button secondary">Update verified stock</Link></div></aside></div>}
+      {activeProduct && <div className="product-drawer-backdrop" onClick={() => setActiveProduct(null)}><aside className="product-drawer" role="dialog" aria-modal="true" aria-labelledby="product-drawer-title" onClick={(event) => event.stopPropagation()}><div className="product-drawer-header"><div><div className="page-eyebrow">Product evidence</div><h2 id="product-drawer-title">{activeProduct.name}</h2><p>{activeProduct.sku}</p></div><button ref={closeDrawerRef} type="button" aria-label="Close product details" onClick={() => setActiveProduct(null)}>×</button></div><div className="product-drawer-body"><div className="product-detail-pair"><span>Latest reported quantity</span><strong>{formatQuantity(activeProduct.quantity)} units</strong></div><div className="product-detail-pair"><span>Reporting system</span><strong>{activeProduct.source ?? "Not available"}</strong></div><div className="product-detail-pair"><span>Location</span><strong>{activeProduct.location ?? "Not available"}</strong></div><div className="product-detail-pair"><span>Observation date</span><strong>{formatDate(activeProduct.observedAt)}</strong></div><div className="product-detail-pair"><span>Recorded unit cost</span><strong>{activeProduct.unitCost == null ? "Not available" : activeProduct.unitCost.toLocaleString("en-AU", { style: "currency", currency: "AUD" })}</strong></div><div className="product-detail-pair"><span>Open discrepancies</span><strong>{activeProduct.issueCount}</strong></div><div className="notice">Reported source quantities are not automatically verified stock balances. Review conflicting evidence before making changes.</div></div><div className="product-drawer-actions"><Link href="/agent" className="button">Review in Detective Agent</Link><Link href="/update" className="button secondary">Update verified stock</Link></div></aside></div>}
     </div>
   );
 }
