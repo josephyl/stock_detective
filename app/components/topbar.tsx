@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const labels: Array<[string, string]> = [
+  ["/products", "Products"],
   ["/agent", "Detective Agent"],
   ["/reorder", "Reorder safety"],
   ["/brief", "Teams alerts"],
@@ -33,8 +34,9 @@ export default function Topbar() {
       <div className="topbar-actions">
         <span className="topbar-health">
           <span className="topbar-health-dot" />
-          Sources connected
+          Evidence-led inventory
         </span>
+        <Link href="/products" className="topbar-link">Products</Link>
         <Link href="/update" className="topbar-link">Update stock</Link>
         <Link href="/agent" className="topbar-primary">Open agent</Link>
       </div>
