@@ -1581,3 +1581,145 @@ input[type="file"] { padding: 8px; background: #f8fafc; }
     flex-wrap: wrap;
   }
 }
+
+
+/* V2.2 glanceability */
+.case-glance {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 10px;
+}
+.glance-item {
+  min-height: 118px;
+  padding: 14px;
+  border: 1px solid #e6ebf2;
+  border-radius: 12px;
+  background: #fff;
+}
+.glance-item > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.glance-item strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.45;
+  letter-spacing: -.01em;
+}
+.glance-item.problem {
+  border-top: 3px solid var(--red);
+  background: linear-gradient(180deg, #fff, #fff8f9);
+}
+.glance-item.impact {
+  border-top: 3px solid var(--amber);
+  background: linear-gradient(180deg, #fff, #fffaf2);
+}
+.glance-item.action {
+  border-top: 3px solid var(--primary);
+  background: linear-gradient(180deg, #fff, #f8f8ff);
+}
+.glance-guardrail {
+  padding: 10px 12px;
+  font-weight: 650;
+}
+.glance-actions .stack {
+  gap: 6px !important;
+}
+.glance-actions .action-row {
+  gap: 6px;
+}
+.glance-actions .button {
+  min-height: 34px;
+  padding: 8px 11px;
+}
+
+.case-analysis-footer {
+  overflow: hidden;
+  border: 1px solid #e3e8f0;
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+.case-analysis-footer > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px;
+  list-style: none;
+  cursor: pointer;
+  color: #475467;
+  font-size: 10px;
+  font-weight: 700;
+}
+.case-analysis-footer > summary::-webkit-details-marker {
+  display: none;
+}
+.case-analysis-footer[open] .trace-chevron {
+  transform: rotate(180deg);
+}
+.case-analysis-content {
+  display: grid;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.simplified-case .case-head {
+  align-items: flex-start;
+}
+.simplified-case .case-chips {
+  margin-bottom: 8px;
+}
+.simplified-case .case-headline {
+  margin-top: 2px;
+}
+.simplified-case .case-body {
+  gap: 10px;
+}
+.simplified-case .evidence-strip {
+  gap: 6px;
+}
+.simplified-case .evidence-box {
+  min-height: 68px;
+  padding: 10px 11px;
+}
+.simplified-case .evidence-value {
+  font-size: 15px;
+}
+.simplified-case .section-title-row .status-chip {
+  padding: 5px 8px;
+  font-size: 9px;
+}
+
+.attention-queue {
+  padding: 16px;
+}
+.attention-list {
+  gap: 6px;
+}
+.attention-item {
+  min-height: 58px;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+.attention-item strong {
+  font-size: 10.5px;
+}
+.attention-item div > span {
+  font-size: 9px;
+}
+
+@media (max-width: 900px) {
+  .case-glance {
+    grid-template-columns: 1fr;
+  }
+  .glance-item {
+    min-height: 0;
+  }
+}
