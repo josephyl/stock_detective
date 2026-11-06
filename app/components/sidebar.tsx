@@ -60,6 +60,13 @@ const groups = [
     ],
   },
   {
+    label: "Inventory",
+    items: [
+      { href: "/products", label: "Products", icon: DashboardIcon },
+      { href: "/update", label: "Update stock", icon: UploadIcon },
+    ],
+  },
+  {
     label: "Alerts & preferences",
     items: [
       { href: "/brief", label: "Teams alerts", icon: BriefIcon },
@@ -68,7 +75,6 @@ const groups = [
   {
     label: "Data & sync",
     items: [
-      { href: "/update", label: "Update stock", icon: UploadIcon },
       { href: "/upload", label: "Inventory import", icon: UploadIcon },
       { href: "/fulfilment", label: "Fulfilment import", icon: TruckIcon },
     ],
@@ -116,9 +122,9 @@ export default function Sidebar() {
       <div className="sidebar-footer">
         <div className="sidebar-status">
           <span className="status-dot" />
-          <strong>Week 7 PoC</strong>
+          <strong>Human review enabled</strong>
         </div>
-        <span>Bounded-autonomy inventory agent</span>
+        <span>Evidence first · controlled decisions</span>
       </div>
     </aside>
   );
