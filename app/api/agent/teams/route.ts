@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadTeamsAlertSettings } from "@/lib/teams-settings";
-import { buildTeamsAlertText } from "@/lib/teams-message";
+import { buildTeamsAlertText, sendTeamsWebhook } from "@/lib/teams-message";
 
 export async function POST(request: Request) {
   try {
@@ -28,14 +28,12 @@ export async function POST(request: Request) {
     let triggered = false;
     let deliveryStatus = "Teams webhook is not configured.";
 
+    let messageFormat = "not_sent";
     if (webhook) {
-      const response = await fetch(webhook, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      triggered = response.ok;
-      deliveryStatus = response.ok ? "Teams workflow accepted the alert." : `HTTP ${response.status}`;
+      const delivery = await sendTeamsWebhook(webhook, agentCase, discrepancy, reviewUrl, settings);
+      triggered = delivery.delivered;
+      deliveryStatus = delivery.reason;
+      messageFormat = delivery.format;
     }
 
     await supabase.from("agent_events").insert({
@@ -51,6 +49,7 @@ export async function POST(request: Request) {
       delivered: triggered,
       preview: text,
       deliveryStatus,
+      messageFormat,
     });
   } catch (error) {
     return NextResponse.json(
