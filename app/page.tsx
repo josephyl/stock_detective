@@ -17,39 +17,38 @@ export default async function DashboardPage() {
 
   const [
     { count: productCount },
-    { data: open },
-    { data: imports },
     { data: agentCases },
+    { data: imports },
     { count: autoHandled },
   ] = await Promise.all([
     supabase.from("canonical_products").select("*", { count: "exact", head: true }),
     supabase
-      .from("discrepancies")
+      .from("agent_cases")
       .select(
-        "id,severity,confidence_score,value_at_risk,summary,discrepancy_type,canonical_product_id,location,canonical_products(name,sku)"
+        "id,status,agent_confidence,discrepancies(id,severity,confidence_score,value_at_risk,summary,discrepancy_type,canonical_product_id,location,canonical_products(name,sku))"
       )
-      .eq("status", "open")
-      .order("created_at", { ascending: false }),
+      .order("updated_at", { ascending: false }),
     supabase
       .from("source_imports")
       .select("source_system,imported_at,row_count")
       .order("imported_at", { ascending: false })
       .limit(12),
     supabase
-      .from("agent_cases")
-      .select("agent_confidence,status")
-      .neq("status", "resolved"),
-    supabase
       .from("agent_events")
       .select("*", { count: "exact", head: true })
       .eq("event_type", "auto_resolved_low_risk"),
   ]);
 
-  const findings = [...(open ?? [])].sort(
-    (a: any, b: any) => priorityScore(b) - priorityScore(a)
-  );
+  // Use Detective Agent's active-case definition so the dashboard and queue agree.
+  const activeAgentCases = (agentCases ?? []).filter((item: any) => item.status !== "resolved");
+  const findings = activeAgentCases
+    .map((item: any) => item.discrepancies
+      ? { ...item.discrepancies, agentCaseId: item.id }
+      : null)
+    .filter(Boolean)
+    .sort((a: any, b: any) => priorityScore(b) - priorityScore(a));
 
-  const high = findings.filter((x) => x.severity === "high").length;
+  const high = findings.filter((item: any) => priorityScore(item) >= 70).length;
   const reorderRisk = new Set(
     findings
       .filter(
@@ -67,12 +66,12 @@ export default async function DashboardPage() {
       )
     : 100;
 
-  const averageAiConfidence = (agentCases ?? []).length
+  const averageAiConfidence = activeAgentCases.length
     ? Math.round(
-        (agentCases ?? []).reduce(
+        activeAgentCases.reduce(
           (sum: number, x: any) => sum + Number(x.agent_confidence ?? 0),
           0
-        ) / (agentCases ?? []).length
+        ) / activeAgentCases.length
       )
     : 100;
 
@@ -83,10 +82,10 @@ export default async function DashboardPage() {
   const latestImport = imports?.[0]?.imported_at ?? null;
   const aiEnabled = Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL);
 
-  const severityChart = [
-    { label: "High priority", value: findings.filter((item: any) => item.severity === "high").length, tone: "critical" },
-    { label: "Medium priority", value: findings.filter((item: any) => item.severity === "medium").length, tone: "warning" },
-    { label: "Low priority", value: findings.filter((item: any) => item.severity === "low").length, tone: "healthy" },
+  const priorityChart = [
+    { label: "High priority", value: findings.filter((item: any) => priorityScore(item) >= 70).length, tone: "critical" },
+    { label: "Medium priority", value: findings.filter((item: any) => priorityScore(item) >= 45 && priorityScore(item) < 70).length, tone: "warning" },
+    { label: "Low priority", value: findings.filter((item: any) => priorityScore(item) < 45).length, tone: "healthy" },
   ];
   const issueCounts = findings.reduce<Record<string, number>>((counts, item: any) => {
     const key = String(item.discrepancy_type ?? "unknown").replaceAll("_", " ");
@@ -179,18 +178,18 @@ export default async function DashboardPage() {
             <div>
               <div className="kicker">Exception landscape</div>
               <h2>Open cases by priority</h2>
-              <p className="subtitle">A live view of the cases your team needs to manage.</p>
+              <p className="subtitle">Priority is calculated from severity, business impact and evidence trust.</p>
             </div>
             <span className="dashboard-round-arrow" aria-hidden="true">↗</span>
           </div>
           <div className="dashboard-priority-bars">
-            {severityChart.map((item) => (
+            {priorityChart.map((item) => (
               <div className="dashboard-priority-column" key={item.label}>
                 <strong>{item.value}</strong>
                 <div className="dashboard-priority-track">
                   <div
                     className={`dashboard-priority-fill ${item.tone}`}
-                    style={{ height: `${findings.length ? Math.max(8, (item.value / findings.length) * 100) : 0}%` }}
+                    style={{ height: `${findings.length && item.value ? Math.max(8, (item.value / findings.length) * 100) : 0}%` }}
                     role="img"
                     aria-label={`${item.value} ${item.label.toLowerCase()} cases`}
                   />
@@ -265,10 +264,10 @@ export default async function DashboardPage() {
                 {findings.slice(0, 5).map((row: any) => {
                   const band = priorityBand(priorityScore(row));
                   return (
-                    <tr key={row.id}>
+                    <tr key={row.agentCaseId}>
                       <td><span className={"badge " + band.className}>{band.label}</span></td>
                       <td>
-                        <Link href="/agent">
+                        <Link href={"/agent#case-" + row.agentCaseId}>
                           <strong>{row.canonical_products?.name ?? "Product"}</strong>
                           <div className="subtitle">{row.canonical_products?.sku}</div>
                         </Link>
