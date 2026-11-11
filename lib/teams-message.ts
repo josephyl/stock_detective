@@ -41,6 +41,64 @@ export function buildTeamsAlertText(agentCase: any, discrepancy: any, reviewUrl:
   return lines.join("\n");
 }
 
+/** Escape content before inserting external source fields into Teams message HTML. */
+function escapeTeamsHtml(value: unknown) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+/**
+ * Rich message body for Power Automate's "Post message in a chat or channel"
+ * action. Map its Message input to triggerBody()?['formattedHtml'].
+ * Keep the legacy text field separately so existing flows remain functional.
+ */
+export function buildTeamsAlertHtml(agentCase: any, discrepancy: any, reviewUrl: string, settings: TeamsAlertSettings) {
+  const f = alertFacts(agentCase, discrepancy);
+  const trace = buildDecisionTrace(discrepancy, agentCase);
+  const title = /fulfil(?:l)?ment mismatch/i.test(f.issue)
+    ? "INCONSISTENT SHIPMENT STATE"
+    : f.issue.toUpperCase();
+  const riskClass = f.risk === "HIGH" ? "color:#c23240;" : "";
+  const paragraphs = [
+    '<p>🚨 <strong>StockDetective · ' + escapeTeamsHtml(title) + '</strong></p>',
+    '<p><strong>Product:</strong> ' + escapeTeamsHtml(f.productName) + ' (' + escapeTeamsHtml(f.sku) + ')'
+      + '<br/><strong>Issue:</strong> ' + escapeTeamsHtml(f.issue)
+      + ' · <strong><span style="' + riskClass + '">' + escapeTeamsHtml(f.risk) + ' risk</span></strong>'
+      + (settings.includeAiConfidence ? ' (AI confidence: ' + escapeTeamsHtml(f.confidence) + '%)' : '')
+      + '</p>',
+  ];
+
+  if (settings.messageStyle === "detailed" && settings.includePriorityReason) {
+    paragraphs.push('<p><strong>WHY IT NEEDS ATTENTION</strong><br/>' +
+      priorityReasons(discrepancy).map((reason) => '• ' + escapeTeamsHtml(reason)).join('<br/>') + '</p>');
+  }
+  if (settings.messageStyle === "detailed" && settings.includeHardEvidence) {
+    paragraphs.push('<p><strong>HARD EVIDENCE</strong><br/>' +
+      [...trace.observed, 'Evidence trust: ' + f.trust + '%']
+        .map((item) => '• ' + escapeTeamsHtml(item)).join('<br/>') + '</p>');
+  }
+  if (settings.includeRecommendation) {
+    paragraphs.push('<p><strong>NEXT BEST ACTION:</strong> ' + escapeTeamsHtml(f.action) + '</p>');
+  }
+  if (settings.includeHumanRole) {
+    paragraphs.push('<p><strong>WHAT STOCK DETECTIVE NEEDS FROM YOU:</strong> ' +
+      escapeTeamsHtml(trace.boundary) + '</p>');
+  }
+  if (settings.includeDirectLink) {
+    const safeUrl = /^https?:\/\//i.test(reviewUrl) ? reviewUrl : "";
+    if (safeUrl) {
+      paragraphs.push('<p><strong>Open case:</strong> <a href="' +
+        escapeTeamsHtml(safeUrl) + '">' + escapeTeamsHtml(safeUrl) + '</a></p>');
+    }
+  }
+
+  return paragraphs.join("\n");
+}
+
 /** Reserved for a future Teams flow that explicitly posts an Adaptive Card. */
 export function buildTeamsAlertPayload(agentCase: any, discrepancy: any, reviewUrl: string, settings: TeamsAlertSettings) {
   const f = alertFacts(agentCase, discrepancy);
@@ -107,14 +165,14 @@ export function buildTeamsAlertPayload(agentCase: any, discrepancy: any, reviewU
  * The existing Power Automate "Post message" workflow reads triggerBody().text.
  * Posting an Adaptive Card envelope can return HTTP 200 while rendering an empty
  * Teams message. Keep this endpoint text-only until the Teams flow itself is
- * configured to use a "Post adaptive card" action.
+ * configured to use the optional formattedHtml field or a card action.
  */
 export async function sendTeamsWebhook(webhook: string, agentCase: any, discrepancy: any, reviewUrl: string, settings: TeamsAlertSettings) {
   const message = buildTeamsAlertText(agentCase, discrepancy, reviewUrl, settings);
   const response = await fetch(webhook, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text: message }),
+    body: JSON.stringify({ text: message, formattedHtml: buildTeamsAlertHtml(agentCase, discrepancy, reviewUrl, settings) }),
   });
 
   return {
