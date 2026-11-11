@@ -96,7 +96,9 @@ export function buildTeamsAlertHtml(agentCase: any, discrepancy: any, reviewUrl:
     }
   }
 
-  return paragraphs.join("\n");
+  // Explicit HTML breaks survive Teams Workflows rich-text normalization;
+  // a raw newline between <p> elements is otherwise rendered as no spacing.
+  return paragraphs.join("<br/><br/>");
 }
 
 /** Reserved for a future Teams flow that explicitly posts an Adaptive Card. */
