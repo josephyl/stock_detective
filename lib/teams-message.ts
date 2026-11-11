@@ -18,7 +18,7 @@ function alertFacts(agentCase: any, discrepancy: any) {
   };
 }
 
-/** Plain-text fallback and API preview. The Adaptive Card is the primary Teams format. */
+/** Preview and delivery text used by the existing Teams Workflows message action. */
 export function buildTeamsAlertText(agentCase: any, discrepancy: any, reviewUrl: string, settings: TeamsAlertSettings) {
   const f = alertFacts(agentCase, discrepancy);
   const detailed = settings.messageStyle === "detailed";
@@ -41,7 +41,7 @@ export function buildTeamsAlertText(agentCase: any, discrepancy: any, reviewUrl:
   return lines.join("\n");
 }
 
-/** Microsoft Teams Workflows incoming webhook: Adaptive Card v1.2 envelope. */
+/** Reserved for a future Teams flow that explicitly posts an Adaptive Card. */
 export function buildTeamsAlertPayload(agentCase: any, discrepancy: any, reviewUrl: string, settings: TeamsAlertSettings) {
   const f = alertFacts(agentCase, discrepancy);
   const detailed = settings.messageStyle === "detailed";
@@ -103,24 +103,25 @@ export function buildTeamsAlertPayload(agentCase: any, discrepancy: any, reviewU
   };
 }
 
-/** Fall back only when the receiver rejects the card schema. Never mask network/server errors. */
+/**
+ * The existing Power Automate "Post message" workflow reads triggerBody().text.
+ * Posting an Adaptive Card envelope can return HTTP 200 while rendering an empty
+ * Teams message. Keep this endpoint text-only until the Teams flow itself is
+ * configured to use a "Post adaptive card" action.
+ */
 export async function sendTeamsWebhook(webhook: string, agentCase: any, discrepancy: any, reviewUrl: string, settings: TeamsAlertSettings) {
-  const send = (payload: unknown) => fetch(webhook, {
+  const message = buildTeamsAlertText(agentCase, discrepancy, reviewUrl, settings);
+  const response = await fetch(webhook, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ text: message }),
   });
-  const response = await send(buildTeamsAlertPayload(agentCase, discrepancy, reviewUrl, settings));
-  if (response.ok) return { delivered: true, format: "adaptive_card", reason: "Teams accepted the formatted card." };
-  if ([400, 415, 422].includes(response.status)) {
-    const fallback = await send({ text: buildTeamsAlertText(agentCase, discrepancy, reviewUrl, settings) });
-    return {
-      delivered: fallback.ok,
-      format: "plain_text_fallback",
-      reason: fallback.ok
-        ? "Teams rejected the card and accepted a plain-text fallback. Check the Teams Workflow card action."
-        : `Card HTTP ${response.status}; fallback HTTP ${fallback.status}`,
-    };
-  }
-  return { delivered: false, format: "adaptive_card", reason: `Teams HTTP ${response.status}` };
+
+  return {
+    delivered: response.ok,
+    format: "plain_text",
+    reason: response.ok
+      ? "Teams workflow accepted the text alert. Confirm the message rendered in the channel."
+      : `Teams HTTP ${response.status}`,
+  };
 }
