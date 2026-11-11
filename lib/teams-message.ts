@@ -28,6 +28,7 @@ export function buildTeamsAlertText(agentCase: any, discrepancy: any, reviewUrl:
     `Product: ${f.productName} (${f.sku})`,
     `Issue: ${f.issue} · ${f.risk} risk`,
   ];
+  if (settings.includeRecommendation) lines.push(`NEXT BEST ACTION: ${f.action}`);
   if (detailed && settings.includePriorityReason) {
     lines.push("WHY IT NEEDS ATTENTION", ...priorityReasons(discrepancy).map((reason) => `• ${reason}`));
   }
@@ -35,7 +36,6 @@ export function buildTeamsAlertText(agentCase: any, discrepancy: any, reviewUrl:
     lines.push("HARD EVIDENCE", ...trace.observed.map((item) => `• ${item}`), `Evidence trust: ${f.trust}%`);
   }
   if (detailed && settings.includeAiConfidence) lines.push(`AI confidence: ${f.confidence}%`);
-  if (settings.includeRecommendation) lines.push(`NEXT BEST ACTION: ${f.action}`);
   if (settings.includeHumanRole) lines.push(`HUMAN REVIEW: ${trace.boundary}`);
   if (settings.includeDirectLink) lines.push(`Open case: ${reviewUrl}`);
   return lines.join("\n");
@@ -72,6 +72,9 @@ export function buildTeamsAlertHtml(agentCase: any, discrepancy: any, reviewUrl:
       + '</p>',
   ];
 
+  if (settings.includeRecommendation) {
+    paragraphs.push('<p><strong>NEXT BEST ACTION:</strong> ' + escapeTeamsHtml(f.action) + '</p>');
+  }
   if (settings.messageStyle === "detailed" && settings.includePriorityReason) {
     paragraphs.push('<p><strong>WHY IT NEEDS ATTENTION</strong><br/>' +
       priorityReasons(discrepancy).map((reason) => '• ' + escapeTeamsHtml(reason)).join('<br/>') + '</p>');
@@ -80,9 +83,6 @@ export function buildTeamsAlertHtml(agentCase: any, discrepancy: any, reviewUrl:
     paragraphs.push('<p><strong>HARD EVIDENCE</strong><br/>' +
       [...trace.observed, 'Evidence trust: ' + f.trust + '%']
         .map((item) => '• ' + escapeTeamsHtml(item)).join('<br/>') + '</p>');
-  }
-  if (settings.includeRecommendation) {
-    paragraphs.push('<p><strong>NEXT BEST ACTION:</strong> ' + escapeTeamsHtml(f.action) + '</p>');
   }
   if (settings.includeHumanRole) {
     paragraphs.push('<p><strong>WHAT STOCK DETECTIVE NEEDS FROM YOU:</strong> ' +
@@ -133,6 +133,7 @@ export function buildTeamsAlertPayload(agentCase: any, discrepancy: any, reviewU
     body.push({ type: "TextBlock", text: content, wrap: true, spacing: "Small" });
   };
 
+  if (settings.includeRecommendation) section("NEXT BEST ACTION", f.action);
   if (detailed && settings.includePriorityReason) {
     section("WHY IT NEEDS ATTENTION", priorityReasons(discrepancy).map((reason) => `• ${reason}`).join("\n"));
   }
@@ -142,7 +143,6 @@ export function buildTeamsAlertPayload(agentCase: any, discrepancy: any, reviewU
   if (detailed && settings.includeAiConfidence) {
     body.push({ type: "TextBlock", text: `AI assessment confidence: ${f.confidence}%`, size: "Small", color: "Default", spacing: "Medium", wrap: true });
   }
-  if (settings.includeRecommendation) section("NEXT BEST ACTION", f.action);
   if (settings.includeHumanRole) section("YOUR DECISION", trace.boundary);
 
   return {
