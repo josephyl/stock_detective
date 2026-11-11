@@ -162,24 +162,30 @@ export function buildTeamsAlertPayload(agentCase: any, discrepancy: any, reviewU
 }
 
 /**
- * The existing Power Automate "Post message" workflow reads triggerBody().text.
- * Posting an Adaptive Card envelope can return HTTP 200 while rendering an empty
- * Teams message. Keep this endpoint text-only until the Teams flow itself is
- * configured to use the optional formattedHtml field or a card action.
+ * The existing Power Automate "Post a message in a chat or channel" flow reads
+ * triggerBody().text. That action accepts HTML, but collapses plain-text newline
+ * characters into one paragraph. Supply the safe HTML in the existing text key
+ * so the already-configured flow can render headings, spacing, and links.
+ *
+ * Keep both formattedHtml (for a future explicit mapping) and plainText (for
+ * easy rollback if the customer's Teams tenant treats the action as text-only).
+ * Never send an Adaptive Card envelope through this text-message action: it can
+ * return HTTP 200 while Teams posts a blank message.
  */
 export async function sendTeamsWebhook(webhook: string, agentCase: any, discrepancy: any, reviewUrl: string, settings: TeamsAlertSettings) {
-  const message = buildTeamsAlertText(agentCase, discrepancy, reviewUrl, settings);
+  const plainText = buildTeamsAlertText(agentCase, discrepancy, reviewUrl, settings);
+  const formattedHtml = buildTeamsAlertHtml(agentCase, discrepancy, reviewUrl, settings);
   const response = await fetch(webhook, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text: message, formattedHtml: buildTeamsAlertHtml(agentCase, discrepancy, reviewUrl, settings) }),
+    body: JSON.stringify({ text: formattedHtml, formattedHtml, plainText }),
   });
 
   return {
     delivered: response.ok,
-    format: "plain_text",
+    format: "html_message",
     reason: response.ok
-      ? "Teams workflow accepted the text alert. Confirm the message rendered in the channel."
+      ? "Teams workflow accepted the HTML alert. Confirm headings and spacing render in the channel."
       : `Teams HTTP ${response.status}`,
   };
 }
