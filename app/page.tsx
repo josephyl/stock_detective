@@ -83,14 +83,29 @@ export default async function DashboardPage() {
   const latestImport = imports?.[0]?.imported_at ?? null;
   const aiEnabled = Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL);
 
+  const severityChart = [
+    { label: "High priority", value: findings.filter((item: any) => item.severity === "high").length, tone: "critical" },
+    { label: "Medium priority", value: findings.filter((item: any) => item.severity === "medium").length, tone: "warning" },
+    { label: "Low priority", value: findings.filter((item: any) => item.severity === "low").length, tone: "healthy" },
+  ];
+  const issueCounts = findings.reduce<Record<string, number>>((counts, item: any) => {
+    const key = String(item.discrepancy_type ?? "unknown").replaceAll("_", " ");
+    counts[key] = (counts[key] ?? 0) + 1;
+    return counts;
+  }, {});
+  const issueChart = Object.entries(issueCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const issueMax = Math.max(1, ...issueChart.map(([, count]) => count));
+
   return (
     <div className="stack">
-      <div className="page-header">
+      <div className="page-header dashboard-hero">
         <div>
-          <div className="page-eyebrow">Inventory operations</div>
-          <h1>Inventory overview</h1>
+          <div className="page-eyebrow">Your daily control centre</div>
+          <h1>Dashboard overview</h1>
           <div className="subtitle">
-            See what needs attention first, how trustworthy the evidence is, and when your source data last changed.
+            See the health of your inventory, investigate what matters, and keep every stock decision grounded in evidence.
           </div>
         </div>
 
@@ -107,36 +122,41 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-5">
-        <div className="card metric-card">
+        <div className="card metric-card dashboard-metric-card">
           <div className="metric-label">Needs human review</div>
+          <span className="dashboard-metric-icon"><SearchIcon /></span>
           <div className="metric">{findings.length}</div>
           <div className="metric-note">Open cases waiting for human judgement</div>
         </div>
 
-        <div className="card metric-card">
+        <div className="card metric-card dashboard-metric-card">
           <div className="metric-label">High priority</div>
+          <span className="dashboard-metric-icon"><BotIcon /></span>
           <div className={"metric " + (high > 0 ? "bad" : "good")}>{high}</div>
           <div className="metric-note">Immediate review required</div>
         </div>
 
-        <div className="card metric-card">
+        <div className="card metric-card dashboard-metric-card">
           <div className="metric-label">Evidence trust</div>
+          <span className="dashboard-metric-icon"><CheckIcon /></span>
           <div className={"metric " + scoreClass(averageConfidence)}>
             {averageConfidence}%
           </div>
           <div className="metric-note">Agreement + freshness across current open evidence</div>
         </div>
 
-        <div className="card metric-card">
+        <div className="card metric-card dashboard-metric-card">
           <div className="metric-label">AI confidence</div>
+          <span className="dashboard-metric-icon"><BotIcon /></span>
           <div className={"metric " + scoreClass(averageAiConfidence)}>
             {averageAiConfidence}%
           </div>
           <div className="metric-note">Confidence in current recommendations</div>
         </div>
 
-        <div className="card metric-card">
+        <div className="card metric-card dashboard-metric-card">
           <div className="metric-label">Last data update</div>
+          <span className="dashboard-metric-icon"><CheckIcon /></span>
           <div className="metric metric-time">
             {latestImport
               ? new Date(latestImport).toLocaleTimeString([], {
@@ -151,6 +171,67 @@ export default async function DashboardPage() {
               : "No source data loaded"}
           </div>
         </div>
+      </div>
+
+      <div className="dashboard-insights">
+        <section className="card dashboard-insight-card highlight" aria-label="Open cases by priority">
+          <div className="dashboard-panel-heading">
+            <div>
+              <div className="kicker">Exception landscape</div>
+              <h2>Open cases by priority</h2>
+              <p className="subtitle">A live view of the cases your team needs to manage.</p>
+            </div>
+            <span className="dashboard-round-arrow" aria-hidden="true">↗</span>
+          </div>
+          <div className="dashboard-priority-bars">
+            {severityChart.map((item) => (
+              <div className="dashboard-priority-column" key={item.label}>
+                <strong>{item.value}</strong>
+                <div className="dashboard-priority-track">
+                  <div
+                    className={`dashboard-priority-fill ${item.tone}`}
+                    style={{ height: `${findings.length ? Math.max(8, (item.value / findings.length) * 100) : 0}%` }}
+                    role="img"
+                    aria-label={`${item.value} ${item.label.toLowerCase()} cases`}
+                  />
+                </div>
+                <span>{item.label}</span>
+              </div>
+            ))}
+          </div>
+          {!findings.length && <p className="dashboard-chart-empty">No active issues — your current inventory evidence is within guardrails.</p>}
+        </section>
+
+        <section className="card dashboard-insight-card dark" aria-label="Open cases by discrepancy type">
+          <div className="dashboard-panel-heading">
+            <div>
+              <div className="kicker">Evidence signals</div>
+              <h2>Where discrepancies are happening</h2>
+              <p className="subtitle">Current open cases, grouped by issue type.</p>
+            </div>
+            <Link href="/agent" className="dashboard-round-arrow" aria-label="Open Detective Agent">↗</Link>
+          </div>
+          <div className="dashboard-issue-bars">
+            {issueChart.map(([type, count]) => (
+              <div className="dashboard-issue-row" key={type}>
+                <span>{type}</span>
+                <div
+                  className="dashboard-issue-track"
+                  role="progressbar"
+                  aria-label={type}
+                  aria-valuenow={count}
+                  aria-valuemin={0}
+                  aria-valuemax={issueMax}
+                >
+                  <div className="dashboard-issue-fill" style={{ width: `${(count / issueMax) * 100}%` }}>
+                    <strong>{count}</strong>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {!issueChart.length && <div className="dashboard-empty-dark">No discrepancies detected from current imports.</div>}
+          </div>
+        </section>
       </div>
 
       <div className="grid grid-2">

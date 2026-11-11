@@ -164,3 +164,216 @@ input, select, textarea { font-size: 13px; }
 @media (max-width: 1200px) { .products-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } .product-status-tabs { margin-left: 0; } }
 @media (max-width: 900px) { .main { padding: 19px 16px 36px; } .topbar { padding: 12px 17px; } .products-table-wrap { overflow-x: auto; } .products-table { min-width: 900px; } }
 @media (max-width: 620px) { .products-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; } .product-kpi { min-height: 120px; padding: 14px; } .product-kpi > strong { font-size: 24px; } .products-toolbar { align-items: stretch; } .product-status-tabs { width: 100%; justify-content: space-between; } .product-bulk-bar { width: calc(100% - 24px); justify-content: space-between; } }
+
+
+/* November 2026 · Stock Detective fresh inventory workspace
+   Inspired primarily by RetailStock's soft mint/lime operational dashboard,
+   with compact analytics from the supplied references. */
+:root {
+  --bg: #eff5ef;
+  --panel: #ffffff;
+  --panel-soft: #f7faf7;
+  --text: #1e2424;
+  --muted: #62716e;
+  --muted-2: #83908b;
+  --border: #e2eae4;
+  --border-strong: #d2ded6;
+  --primary: #35523b;
+  --primary-dark: #243b2a;
+  --primary-soft: #eef8d9;
+  --sidebar: #f3f9f5;
+  --sidebar-active: #ffffff;
+  --accent-lime: #e9fb68;
+  --accent-leaf: #b5d45f;
+  --accent-forest: #293128;
+  --shadow: 0 12px 40px rgba(29, 46, 36, .045);
+}
+html, body { background: var(--bg); color: var(--text); }
+body { font-family: "Inter", "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.shell { grid-template-columns: 242px minmax(0, 1fr); }
+.sidebar {
+  width: 242px;
+  background: #f5f9f6;
+  border-right: 1px solid #e0e9e2;
+  padding: 29px 15px 20px;
+}
+.brand-row { margin-bottom: 32px; }
+.brand { color: #1b2820; font-weight: 850; letter-spacing: -.045em; }
+.brand small { color: #819187; }
+.nav-label { color: #8b9a90; letter-spacing: .11em; }
+.nav-link { min-height: 44px; border-radius: 14px; color: #50635a; }
+.nav-link:hover { background: #e9f3e9; color: #274934; }
+.nav-link.active {
+  background: #fff;
+  color: #1d3929;
+  box-shadow: 0 7px 20px rgba(25, 54, 35, .045);
+  font-weight: 750;
+  border-left: 3px solid #afd43f;
+  padding-left: 9px;
+}
+.nav-link.active .nav-icon { color: #5a8527; }
+.sidebar-footer { background: #fff; border-color: #e0e9e2; border-radius: 17px; }
+.sidebar-status { color: #2c4731; }
+.topbar {
+  background: #f5f9f6;
+  border-bottom: 1px solid #e1e9e2;
+  min-height: 72px;
+}
+.topbar-product { color: #859489; }
+.topbar-context strong { color: #2d4434; }
+.topbar-primary, .button:not(.secondary) { color: #fff; background: #294531; border-color: #294531; }
+.topbar-primary:hover, .button:not(.secondary):hover { background: #1d3424; }
+.topbar-health { color: #3e694a; background: #e6f3e4; border-color: #d5e7d2; }
+.main {
+  padding: 34px clamp(20px, 3vw, 48px) 70px;
+  background: #eff5f0;
+}
+.main-inner { max-width: 1600px; }
+.stack { gap: 23px; }
+.grid { gap: 18px; }
+h1 { color: #202925; letter-spacing: -.05em; font-size: clamp(30px, 3vw, 41px); }
+h2 { letter-spacing: -.04em; font-weight: 750; }
+.page-eyebrow, .kicker { color: #657f68; letter-spacing: .1em; }
+.subtitle { color: #66776c; }
+.card {
+  border-radius: 23px;
+  border: 1px solid rgba(219, 231, 221, .92);
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+.card.soft, .source-row { background: #f8fbf8; }
+.status-chip, .badge, .trust-pill { border-radius: 999px; }
+.table-wrap { border-radius: 15px; border-color: #e6ede6; }
+th { background: #f6faf6; color: #68796d; }
+tbody tr:hover { background: #f6fbf6; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
+  outline: 3px solid #bedf68;
+  outline-offset: 2px;
+}
+.product-status-tabs { background: #edf4ed; border-radius: 13px; }
+.product-status-tabs button.active { color: #2d5735; }
+.products-table tr.selected { background: #f5fbeb; }
+.product-photo-source { color: #3e733f; }
+.product-bulk-bar { border-color: #dbe9dc; }
+.product-bulk-bar button { background: #edf8e6; color: #385d3b; border-color: #d8ecd1; }
+
+/* Dashboard summary and honest, live charts */
+.dashboard-hero { padding: 9px 2px 10px; align-items: center; }
+.dashboard-hero .subtitle { max-width: 650px; font-size: 14px; }
+.dashboard-metric-card {
+  position: relative;
+  min-height: 158px;
+  border-radius: 26px;
+  background: #fff;
+  padding: 23px;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.dashboard-metric-card:hover { transform: translateY(-2px); box-shadow: 0 15px 32px rgba(30, 52, 37, .075); }
+.dashboard-metric-card:nth-child(2) { background: #f6fbdc; }
+.dashboard-metric-card:nth-child(3) { background: #f8fcf1; }
+.dashboard-metric-card .metric-label { color: #42534b; font-size: 12px; font-weight: 650; padding-right: 42px; }
+.dashboard-metric-card .metric { margin-top: 18px; color: #232b25; font-size: clamp(30px, 3.2vw, 41px); font-weight: 800; }
+.dashboard-metric-card .metric.bad { color: #a94044; }
+.dashboard-metric-card .metric.good { color: #2e6c47; }
+.dashboard-metric-card .metric.warn { color: #987023; }
+.dashboard-metric-card .metric-note { color: #758278; font-size: 11px; }
+.dashboard-metric-icon {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  width: 37px;
+  height: 37px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #eaf66a;
+  color: #3d5331;
+}
+.dashboard-metric-icon svg { width: 19px; height: 19px; }
+.dashboard-insights { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 19px; }
+.dashboard-insight-card { min-height: 310px; padding: 27px; overflow: hidden; }
+.dashboard-insight-card.highlight { background: #edfc7e; border-color: #e8f477; }
+.dashboard-insight-card.dark { background: #29312c; border-color: #29312c; color: #f6faf4; }
+.dashboard-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.dashboard-panel-heading h2 { font-size: 20px; line-height: 1.2; margin: 7px 0 4px; }
+.dashboard-panel-heading .subtitle { margin: 0; font-size: 12px; }
+.dashboard-insight-card.highlight .kicker { color: #63732a; }
+.dashboard-insight-card.highlight .subtitle { color: #5b6a37; }
+.dashboard-insight-card.dark h2 { color: #fff; }
+.dashboard-insight-card.dark .kicker { color: #c9df8b; }
+.dashboard-insight-card.dark .subtitle { color: #bbc8b9; }
+.dashboard-round-arrow { width: 34px; height: 34px; display: grid; place-items: center; flex-shrink: 0; font-size: 19px; border: 1px solid currentColor; border-radius: 50%; color: inherit; }
+.dashboard-priority-bars { height: 185px; display: flex; align-items: flex-end; justify-content: center; gap: clamp(12px, 3vw, 35px); margin-top: 17px; }
+.dashboard-priority-column { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; height: 100%; }
+.dashboard-priority-column > strong { font-size: 19px; margin-bottom: 6px; }
+.dashboard-priority-track { position: relative; flex: 1; width: min(100%, 105px); min-height: 70px; border-radius: 13px 13px 0 0; background: rgba(67, 84, 40, .13); overflow: hidden; }
+.dashboard-priority-fill { position: absolute; bottom: 0; width: 100%; transition: height .25s ease; border-radius: 12px 12px 0 0; }
+.dashboard-priority-fill.critical { background: #48523b; }
+.dashboard-priority-fill.warning { background: #89ac47; }
+.dashboard-priority-fill.healthy { background: #bdd96b; }
+.dashboard-priority-column > span { text-align: center; font-size: 11px; font-weight: 650; color: #445331; margin-top: 10px; }
+.dashboard-chart-empty { font-size: 11px; color: #53643c; text-align: center; margin: 7px 0 0; }
+.dashboard-issue-bars { display: grid; gap: 16px; margin-top: 29px; }
+.dashboard-issue-row { display: grid; grid-template-columns: 145px minmax(0, 1fr); align-items: center; gap: 15px; font-size: 12px; }
+.dashboard-issue-row > span { color: #dce7d5; text-transform: capitalize; }
+.dashboard-issue-track { height: 22px; background: rgba(214, 229, 184, .12); border-radius: 99px; overflow: hidden; }
+.dashboard-issue-fill { min-width: 38px; height: 100%; border-radius: 99px; background: #b3d866; color: #26331e; display: flex; justify-content: flex-end; align-items: center; padding: 0 10px; font-size: 11px; }
+.dashboard-empty-dark { color: #aebfaf; font-size: 12px; padding: 18px 0; }
+
+/* Preview the same hierarchy as a Teams Adaptive Card */
+.teams-format-picker { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.teams-format-option {
+  background: #f8fbf7; color: #304035; border: 1px solid #dbe6da; border-radius: 16px;
+  text-align: left; padding: 16px 18px; cursor: pointer; display: grid; gap: 6px; min-height: 87px;
+}
+.teams-format-option:hover { border-color: #9fbf66; background: #f1f9df; }
+.teams-format-option.selected { border: 2px solid #6b923a; background: #edf9d7; padding: 15px 17px; box-shadow: 0 3px 14px rgba(68, 99, 44, .07); }
+.teams-format-option strong { font-size: 13px; }
+.teams-format-option small { font-size: 11px; color: #718074; }
+.teams-preview-header { align-items: center; }
+.teams-preview-header .subtitle { margin-top: 6px; }
+.teams-preview-mode { white-space: nowrap; background: #eafbcd; border: 1px solid #d3e9a8; padding: 8px 12px; border-radius: 999px; font-size: 11px; color: #3a6035; font-weight: 750; }
+.teams-live-preview { margin-top: 17px; max-width: 740px; border: 1px solid #d8e2da; border-radius: 16px; overflow: hidden; background: #fff; box-shadow: 0 7px 19px rgba(31,42,35,.04); }
+.teams-alert-banner { padding: 16px 20px; background: #fff0ed; border-bottom: 1px solid #f5d9d5; display: grid; gap: 5px; }
+.teams-alert-eyebrow { font-size: 10px; letter-spacing: .1em; font-weight: 800; color: #99534d; }
+.teams-alert-banner > strong { font-size: 18px; color: #7e3432; letter-spacing: -.02em; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.teams-risk-label { color: #9a3535; background: #ffe1db; padding: 5px 10px; border-radius: 999px; font-size: 11px; letter-spacing: 0; white-space: nowrap; }
+.teams-alert-content { padding: 19px 21px 21px; }
+.teams-alert-content h3 { margin: 0 0 12px; font-size: 17px; color: #26312b; }
+.teams-alert-facts { display: flex; flex-wrap: wrap; gap: 9px 18px; padding-bottom: 14px; border-bottom: 1px solid #ebf0ec; font-size: 11px; color: #5a6b60; }
+.teams-alert-facts span { display: flex; gap: 7px; }
+.teams-alert-facts strong { color: #2e3f33; }
+.teams-alert-section { margin-top: 15px; }
+.teams-alert-section > strong { display: block; margin-bottom: 5px; text-transform: uppercase; font-size: 11px; letter-spacing: .03em; color: #547249; }
+.teams-alert-section > p { margin: 0; font-size: 12px; color: #39483d; line-height: 1.6; }
+.teams-alert-section.action { background: #f5fae6; padding: 13px 15px; border-radius: 12px; }
+.teams-alert-confidence { font-size: 12px; color: #536558; margin-top: 13px; }
+.teams-alert-link { display: inline-flex; padding: 10px 13px; margin-top: 17px; border-radius: 10px; background: #294b32; color: white; font-weight: 700; font-size: 12px; }
+.teams-live-preview.compact { max-width: 610px; }
+.teams-live-preview.compact .teams-alert-content { padding: 14px 18px 17px; }
+.teams-live-preview.compact .teams-alert-section { margin-top: 10px; }
+.teams-live-preview.compact .teams-alert-section.action { padding: 10px 12px; }
+.teams-preview-hint { font-size: 11px; color: #708075; margin: 12px 2px 0; }
+.toggle-row input[type="checkbox"] { accent-color: #548437; }
+
+@media (max-width: 1200px) {
+  .dashboard-insights { grid-template-columns: 1fr; }
+  .dashboard-metric-card { padding: 20px; }
+}
+@media (max-width: 900px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { width: 100%; position: relative; height: auto; }
+  .main { padding: 20px 16px 40px; }
+  .dashboard-hero { align-items: flex-start; }
+  .dashboard-insights { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .dashboard-priority-bars { gap: 9px; }
+  .dashboard-priority-column > span { font-size: 10px; }
+  .dashboard-issue-row { grid-template-columns: 110px minmax(0, 1fr); gap: 7px; }
+  .dashboard-insight-card { padding: 18px; }
+  .teams-format-picker { grid-template-columns: 1fr; }
+  .teams-preview-header { flex-direction: column; align-items: flex-start; }
+  .teams-alert-facts { display: grid; }
+  .teams-alert-banner > strong { font-size: 16px; }
+}

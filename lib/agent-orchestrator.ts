@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { assessDiscrepancy } from "@/lib/stock-brain";
 import { autonomyPolicy } from "@/lib/autonomy";
 import { loadTeamsAlertSettings, shouldSendTeamsAlert } from "@/lib/teams-settings";
-import { buildTeamsAlertText } from "@/lib/teams-message";
+import { sendTeamsWebhook } from "@/lib/teams-message";
 
 function caseLink(caseId: string) {
   const base = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
@@ -15,15 +15,7 @@ async function sendTeamsIfConfigured(agentCase: any, discrepancy: any, settings:
   if (!webhook) return { delivered: false, reason: "Teams webhook not configured." };
 
   try {
-    const response = await fetch(webhook, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: buildTeamsAlertText(agentCase, discrepancy, caseLink(agentCase.id), settings) }),
-    });
-    return {
-      delivered: response.ok,
-      reason: response.ok ? "Teams workflow accepted the alert." : `HTTP ${response.status}`,
-    };
+    return await sendTeamsWebhook(webhook, agentCase, discrepancy, caseLink(agentCase.id), settings);
   } catch (error) {
     return {
       delivered: false,
