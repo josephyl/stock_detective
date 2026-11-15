@@ -57,3 +57,20 @@ Output:
 - Likely cause: Shopify is the likely outlier because Warehouse and POS independently agree.
 - Business impact: reordering from an unreliable number can increase excess stock.
 - Recommended action: review the evidence and reconcile to 24 only after human approval.
+
+
+## Documentation alignment — 15 Nov 2026
+
+**Who / tool:** Joseph Lin requesting assistance from ChatGPT.
+
+**Slice:** Repository documentation and Week 07 compliance audit.
+
+**Prompt (verbatim from this conversation):** “For the GitHub it must be according to the requirements below - can you do this for me and change the name of the github to stock detective”
+
+**Result:** This request prompted a retrospective update to `SPEC.md` and creation of `AGENT.md`. The initial AI-assisted build history in the repository predates this entry; original verbatim prompts, authors and kept/changed/discarded decisions must be supplied from the team's records, not fabricated. The repository rename and guide-specific runtime checks are separate outstanding tasks.
+
+**Evidence:** Existing application currently uses OpenAI via `lib/ai.ts` and `lib/stock-brain.ts`, not the specific Gemini + Vercel AI SDK approach in the pasted Week 07 instructions. No actual five-test result is asserted here.
+
+### Historical prompt log still required
+
+For each earlier prompt that changed the app (including discarded changes), add a dated entry with the author, AI tool, exact original prompt, slice, result and reason. This document cannot reconstruct those verbatim prompts from Git commit history alone.
