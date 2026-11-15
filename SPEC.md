@@ -106,3 +106,69 @@ Measure before and after:
 Independent retailers experience enough meaningful cross-system inventory disagreement that an exception/reconciliation layer creates value beyond their existing inventory platform.
 
 Validate with at least 2–3 additional retailers before claiming broad market fit.
+
+
+---
+
+## Build Plan — retrospective alignment (15 Nov 2026)
+
+This section maps the current completed prototype to the Build Guide. It is retrospective documentation, **not evidence that historical team check-ins occurred on the dates or with the ownership shown below**.
+
+1. Source data ingestion, canonical product cataloguing and Supabase persistence — **owner to confirm**.
+2. Cross-source inventory and fulfilment reconciliation, staleness rules and exception queue — **owner to confirm**.
+3. Detective Agent evidence explanations, prioritisation, human review and Teams escalation — **Joseph (developer; team to confirm)**.
+4. Reorder safety check and product visibility — **owner to confirm**.
+5. Verified stock observations by manual/voice/photo interface — **owner to confirm**.
+
+**Agent:** Investigate and explain inventory/fulfilment exceptions; recommend next action and escalate uncertainty — **Joseph (developer; team to confirm)**.
+
+**Check-ins:** Actual dates, participants and location **to be supplied by team**. Do not retrospectively invent check-in records.
+
+**Each person brings:** Their implemented slice, realistic synthetic test case, a screenshot or video of the user path, any failing test and an updated specification/prompt log.
+
+## Slices
+
+**Done in the repository (implementation present, not all end-to-end tests independently verified):** CSV import, Supabase-backed records, discrepancy rules, Detective Agent case display, Teams alert settings, reorder safety and stock-update interface.
+
+**Now:** Validate agent boundaries, passcode/security and the five documented agent tests; test the entire path on the deployed public link with synthetic data. Record actual results.
+
+**Next:** Automate source ingestion with approved read-only APIs, make alert policies customisable, and evaluate the stakeholder's preference for a visibility-only product rather than source-system write-back.
+
+## Decisions
+
+- **15 Nov 2026:** Retain deterministic source checks as the factual basis for AI recommendations, because contradictory observations must be displayed rather than guessed away.
+- **15 Nov 2026:** Prioritise the shipping mismatch as the demonstration's primary case, because the retail-operations interview specifically described shipped-versus-unshipped disagreement.
+- **15 Nov 2026:** Treat read-only operational visibility as the proposed future direction after a follow-up interview with Natonic's owner. Existing stock-update/write-back functionality remains in the prototype and requires a conscious scope decision; do not represent it as already removed.
+- **15 Nov 2026:** Record existing OpenAI integration honestly. The Week 07 guide's specified Gemini/AI SDK approach, passcode and five-test evidence are not yet verified.
+
+## Current data and deployment caveats
+
+The live application uses Supabase tables for source imports, canonical products, inventory records, discrepancies, agent cases and case events. The initial `supabase/schema.sql` file may not contain every subsequent migration; verify against the actual Supabase schema before claiming an exact match.
+
+The application accepts CSV uploads and has a deployed Vercel frontend. Automated real-time connectors have not been verified. The current prototype should not be presented as fully live-synchronised.
+
+## Week 07 demonstration plan
+
+**User and problem:** A small multichannel retailer's operations employee must identify and act on conflicting warehouse, Shopify and POS evidence without checking several dashboards.
+
+**Path:** (1) Open preloaded Detective Agent queue; (2) inspect ORD-4821 Shipped versus Unshipped; (3) explain why the agent recommends holding an affected reorder and human verification; (4) show Teams alert preview; (5) compare reorder-safety outcomes; (6) show verified-stock input with human confirmation.
+
+**Agent:** Existing Detective Agent case assessment and priority queue; an authorised operations employee verifies consequential decisions.
+
+**One why, with evidence:** The shipping exception flow addresses the interviewee's reported problem of items leaving the warehouse while the sales channel still shows them as unshipped.
+
+**Roles:** Joseph demonstrates the developer workflow. Other presenters and question owners **to confirm**.
+
+**Backup:** Use screenshots or a screen recording of the same preloaded path; verify they are available on the presentation device.
+
+## Week 07 checklist status (as of documentation update)
+
+- [x] Repository includes `package.json`, app directory and `SPEC.md` (verified by connected GitHub reads).
+- [x] `AGENT.md` design rationale and five *expected* test cases documented.
+- [ ] Actual team ownership and historical check-in details confirmed.
+- [ ] `SPEC.md` reconciled with the current live Supabase schema.
+- [ ] Every must-have end-to-end path tested with database checks and recorded results.
+- [ ] Agent runtime prompts, model/framework, passcode and five-call limit verified against the guide.
+- [ ] Three normal, boundary and escalation tests executed and results recorded.
+- [ ] Deployed mobile experience, public-demo path and backup recording verified.
+- [ ] Complete historical AI prompt log and teammate evaluation judgments supplied.
